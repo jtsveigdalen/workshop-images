@@ -1,0 +1,2575 @@
+﻿$(document).ready(function () {
+    convertResponsiveSliderValuesToTime($("#timerange-responsiveslider").slider("values", 0), $("#timerange-responsiveslider").slider("values", 1));
+    RenderAutoCompleteForResponsiveEventLocations();
+    SetDefaultFilterValuesFromURLParams();
+    var eventsURL = decodeURI(window.location.href);
+
+    // hide responsive clear product filters button if no filters are applied
+    if ($('input[name="productresponsivefilter"]:checked').length == 0) {
+        $('#ClearProductResponsivefilter').hide();
+    }
+
+    // hide responsive clear all filter button if no product filter is selected
+    if ($('input[name="responsivescenarioheading"]:checked').length == 0 && $('input[name="responsivescenariosubheading"]:checked').length == 0 && $('input[name="productresponsivefilter"]:checked').length == 0 &&
+        $('input[name="roleresponsivefilter"]:checked').length == 0 && $('input[name="industryresponsivefilter"]:checked').length == 0 && $("#FavDataSpanResponsive").text() === "0") {
+        $('#ClearAllResponsiveFilters').hide();
+    }
+
+    // hide responsive clear event languge button if no language filter is selected
+    if ($('input[name="languageresponsivepreference"]:checked').length == 0) {
+        $('#ClearEventLanguageResponsivePreference').hide();
+    }
+    // hide responsive clear event delivery languge button if no language filter is selected
+    if ($('input[name="deliverylanguageresponsivepreference"]:checked').length == 0) {
+        $('#ClearEventdeliveryLanguageResponsivePreference').hide();
+    }
+    // hide responsive clear event subtitle languge button if no language filter is selected
+    if ($('input[name="subtitlelanguageresponsivepreference"]:checked').length == 0) {
+        $('#ClearEventsubtitleLanguageResponsivePreference').hide();
+    }
+
+    // hide responsive clear all preferences button if no prefernce refiner is added to events
+    if ($("#EventStartTimeResponsiveFilterItem").length > 0 && $("#EventEndTimeResponsiveFilterItem").length > 0) {
+        if ($('input[name="languageresponsivepreference"]:checked').length == 0 && $('input[name="deliverylanguageresponsivepreference"]:checked').length == 0 && $('input[name="subtitlelanguageresponsivepreference"]:checked').length == 0 && $("#EventStartTimeResponsiveFilterItem").val().toLowerCase() === "12:00 am" &&
+            $("#EventEndTimeResponsiveFilterItem").val().toLowerCase() === "11:59 pm" && $('input[name="eventformatresponsivepreference"]:checked').length == 0
+            && $.trim($("#ResponsiveEventsLocations").val()) === '' && $('#ResponsiveSwitchEventTimeZoneToUserLocale:checked').length == 0) {
+            $('#ClearAllResponsivePreferences').hide();
+        }
+    }
+
+    if (eventsURL.indexOf(GlobalStartTimeFilterNameContsant + "=") > -1 && eventsURL.indexOf(GlobalEndTimeFilterNameContsant + "=") > -1) {
+        $("#ResponsiveSwitchEventTimeZoneToUserLocale").prop("checked", true);
+        $("#ResponsiveSwitchEventTimeZoneToUserLocale").prop("disabled", true);
+    }
+});
+
+function RenderAutoCompleteForResponsiveEventLocations() {
+    var responsivelocationsarray = [];
+    if (GeoLocationLatitudeValue != null && GeoLocationLongitueValue !== null) {
+        if ($("#GeoLocationEventsResponsiveList").length > 0) {
+            var defaultcontent = { value: "Events near current location", label: "Events near current location", disabled: true };
+            responsivelocationsarray.push(defaultcontent);
+            $("#GeoLocationEventsResponsiveList li").each(function () {
+                responsivelocationsarray.push({ value: $(this).text(), label: $(this).text(), disabled: false });
+            });
+        } else {
+            var defaultcontent = { value: "No events near current location", label: "No events near current location", disabled: true };
+            responsivelocationsarray.push(defaultcontent);
+            $("#AllEventsLocationResponsiveList li").each(function () {
+                responsivelocationsarray.push({ value: $(this).text(), label: $(this).text(), disabled: false });
+            });
+        }
+    } else {
+        $("#AllEventsLocationResponsiveList li").each(function () {
+            responsivelocationsarray.push({ value: $(this).text(), label: $(this).text(), disabled: false });
+        });
+    }
+
+    TriggerAutoCompleteFunctionalityForResponsiveFilter(responsivelocationsarray)
+}
+
+function TriggerAutoCompleteFunctionalityForResponsiveFilter(sourcearray) {
+    // jquery-ui is used to build the auto complete
+    if ($('#ResponsiveEventsLocations').length > 0) {
+        $('#ResponsiveEventsLocations').autocomplete({
+            source: sourcearray,
+            minLength: 0,
+            scroll: true,
+            focus: function (event, ui) {
+                if (ui.item.disabled) {
+                    return false;
+                } else {
+                    return true;
+                }
+            },
+            select: function (event, ui) {
+                if (!ui.item.disabled) {
+                    $("#ClearResponsiveEventsLocationField").removeClass("hide-dom-element");
+                    $("#ResponsiveLocationDistanceContent").removeClass("hide-dom-element");
+                    // show responsive clear all preferences button
+                    $('#ClearAllResponsivePreferences').show();
+                    return true;
+                } else {
+                    // deselect distance radio buttons, remove dynamic filter applied button and hide the content
+                    $('input[name="responsivedistancepreference"]').prop("checked", false);
+                    $("#ResponsiveLocationDistanceContent").addClass("hide-dom-element");
+                    if ($('button[name="' + GlobalDistanceRadioButtonNameConstant + '"]').length > 0) {
+                        $('button[name="' + GlobalDistanceRadioButtonNameConstant + '"]').remove();
+                    }
+                    return false;
+                }
+            },
+            response: function (event, ui) {
+                if (!ui.content.length) {
+                    var noResult = { value: "", label: "No event locations found", disabled: true };
+                    ui.content.push(noResult);
+                }
+            }
+        }).focus(function () {
+            $(this).autocomplete("search", "");
+        }).data("ui-autocomplete")._renderItem = function (ul, item) {
+            //Add the .ui-state-disabled class and don't wrap in <div> for default values
+            if (item.value === "Events near current location" || item.value === "No events near current location") {
+                return $('<li class="ui-state-disabled">').append("<div>" + item.label + '</div>').appendTo(ul);
+            } else {
+                return $("<li>")
+                    .append("<div>" + item.label + "</div>")
+                    .appendTo(ul);
+            }
+        };
+    }
+}
+
+$("#timerange-responsiveslider").slider({
+    range: true,
+    min: 0,
+    max: 1439,
+    values: [0, 1439],
+    slide: responsiveSlideTime
+});
+
+function responsiveSlideTime(event, ui) {
+    var val0 = ui.values[0];
+    var val1 = ui.values[1];
+    convertResponsiveSliderValuesToTime(val0, val1);
+}
+
+function convertResponsiveSliderValuesToTime(val0, val1) {
+    // show responsive clear all preferences button
+    $('#ClearAllResponsivePreferences').show();
+
+    var hours0 = Math.floor(val0 / 60);
+    var minutes0 = val0 - (hours0 * 60);
+    var hours1 = Math.floor(val1 / 60);
+    var minutes1 = val1 - (hours1 * 60);
+    startTime = getTimeWithMinutes(hours0, minutes0);
+    endTime = getTimeWithMinutes(hours1, minutes1);
+    $("#EventStartTimeResponsiveFilterItem").val(startTime);
+    $("#EventEndTimeResponsiveFilterItem").val(endTime);
+
+    // hide responsive clear all preferences button if no prefernce refiner is added to events
+    if ($("#EventStartTimeResponsiveFilterItem").length > 0 && $("#EventEndTimeResponsiveFilterItem").length > 0) {
+        if ($('input[name="languageresponsivepreference"]:checked').length == 0 && $('input[name="deliverylanguageresponsivepreference"]:checked').length == 0 && $('input[name="subtitlelanguageresponsivepreference"]:checked').length == 0 && $("#EventStartTimeResponsiveFilterItem").val().toLowerCase() === "12:00 am" &&
+            $("#EventEndTimeResponsiveFilterItem").val().toLowerCase() === "11:59 pm" && $('input[name="eventformatresponsivepreference"]:checked').length == 0
+            && $.trim($("#ResponsiveEventsLocations").val()) === '' && $('#ResponsiveSwitchEventTimeZoneToUserLocale:checked').length == 0) {
+            $('#ClearAllResponsivePreferences').hide();
+        }
+    }
+}
+
+$("#EventStartTimeResponsiveFilterItem").change(function () {
+    // show responsive clear all preferences button
+    $('#ClearAllResponsivePreferences').show();
+
+    var starttimeofeventarray = $(this).val().split(":");
+    var minutesarray = starttimeofeventarray[1].replace(" ", '');
+    var starttimeminutes = minutesarray.substr(0, 2);
+    var timeofday = minutesarray.substr(2, 2);
+    if (timeofday.toLowerCase() === "am") {
+        if (parseInt(starttimeofeventarray[0]) == parseInt(12)) {
+            var starttimehour = parseInt(parseInt(starttimeofeventarray[0]) - parseInt(12));
+        } else {
+            var starttimehour = starttimeofeventarray[0];
+        }
+    } else {
+        if (parseInt(starttimeofeventarray[0]) == parseInt(12)) {
+            var starttimehour = starttimeofeventarray[0];
+        } else {
+            var starttimehour = parseInt(parseInt(starttimeofeventarray[0]) + parseInt(12));
+        }
+    }
+
+    var setslidertime = parseInt((starttimehour * 60) + parseInt(starttimeminutes));
+    $("#timerange-responsiveslider").slider("values", 0, setslidertime);
+
+    // hide responsive clear all preferences button if no prefernce refiner is added to events
+    if ($('input[name="languageresponsivepreference"]:checked').length == 0 && $('input[name="deliverylanguageresponsivepreference"]:checked').length == 0 && $('input[name="subtitlelanguageresponsivepreference"]:checked').length == 0 && $("#EventStartTimeResponsiveFilterItem").val().toLowerCase() === "12:00 am" &&
+        $("#EventEndTimeResponsiveFilterItem").val().toLowerCase() === "11:59 pm" && $('input[name="eventformatresponsivepreference"]:checked').length == 0
+        && $.trim($("#ResponsiveEventsLocations").val()) === '' && $('#ResponsiveSwitchEventTimeZoneToUserLocale:checked').length == 0) {
+        $('#ClearAllResponsivePreferences').hide();
+    }
+
+    if ($("#EventStartTimeResponsiveFilterItem").val().toLowerCase() === "12:00 am" && $("#EventEndTimeResponsiveFilterItem").val().toLowerCase() === "11:59 pm") {
+        $("#ResponsiveSwitchEventTimeZoneToUserLocale").prop("checked", false);
+        $("#ResponsiveSwitchEventTimeZoneToUserLocale").prop("disabled", false);
+    } else {
+        $("#ResponsiveSwitchEventTimeZoneToUserLocale").prop("checked", true);
+        $("#ResponsiveSwitchEventTimeZoneToUserLocale").prop("disabled", true);
+    }
+});
+
+$("#EventEndTimeResponsiveFilterItem").change(function () {
+    // show responsive clear all preferences button
+    $('#ClearAllResponsivePreferences').show();
+
+    var endtimeofeventarray = $(this).val().split(":");
+    var minutesarray = endtimeofeventarray[1].replace(" ", '');
+    var endtimeminutes = minutesarray.substr(0, 2);
+    var timeofday = minutesarray.substr(2, 2);
+    if (timeofday.toLowerCase() === "am") {
+        if (parseInt(endtimeofeventarray[0]) == parseInt(12)) {
+            var endtimehour = parseInt(parseInt(endtimeofeventarray[0]) - parseInt(12));
+        } else {
+            var endtimehour = endtimeofeventarray[0];
+        }
+    } else {
+        if (parseInt(endtimeofeventarray[0]) == parseInt(12)) {
+            var endtimehour = endtimeofeventarray[0];
+        } else {
+            var endtimehour = parseInt(parseInt(endtimeofeventarray[0]) + parseInt(12));
+        }
+    }
+
+    var setslidertime = parseInt((endtimehour * 60) + parseInt(endtimeminutes));
+    $("#timerange-responsiveslider").slider("values", 1, setslidertime);
+
+    // hide responsive clear all preferences button if no prefernce refiner is added to events
+    if ($('input[name="languageresponsivepreference"]:checked').length == 0 && $('input[name="deliverylanguageresponsivepreference"]:checked').length == 0 && $('input[name="subtitlelanguageresponsivepreference"]:checked').length == 0 && $("#EventStartTimeResponsiveFilterItem").val().toLowerCase() === "12:00 am" &&
+        $("#EventEndTimeResponsiveFilterItem").val().toLowerCase() === "11:59 pm" && $('input[name="eventformatresponsivepreference"]:checked').length == 0
+        && $.trim($("#ResponsiveEventsLocations").val()) === '' && $('#ResponsiveSwitchEventTimeZoneToUserLocale:checked').length == 0) {
+        $('#ClearAllResponsivePreferences').hide();
+    }
+
+    if ($("#EventStartTimeResponsiveFilterItem").val().toLowerCase() === "12:00 am" && $("#EventEndTimeResponsiveFilterItem").val().toLowerCase() === "11:59 pm") {
+        $("#ResponsiveSwitchEventTimeZoneToUserLocale").prop("checked", false);
+        $("#ResponsiveSwitchEventTimeZoneToUserLocale").prop("disabled", false);
+    } else {
+        $("#ResponsiveSwitchEventTimeZoneToUserLocale").prop("checked", true);
+        $("#ResponsiveSwitchEventTimeZoneToUserLocale").prop("disabled", true);
+    }
+});
+
+// expandall button functionality for mobile filter menu
+$("#ExpandAllResponsiveFilters").on("click", function () {
+    $("#VirtualTraingProgramResponsiveFilterService").collapse('show');
+    $("#VirtualTraingProgramResponsiveFilterButton").attr("aria-expanded", "true");
+    $("#ProductResponsiveFilterService").collapse('show');
+    $("#ProductResponsiveFilterArrow").removeClass("arrow-down");
+    $("#ProductResponsiveFilterArrow").addClass("arrow-up");
+    $("#RoleResponsiveFilterService").collapse('show');
+    $("#RoleResponsiveFilterChevron").removeClass("arrow-down");
+    $("#RoleResponsiveFilterChevron").addClass("arrow-up");
+    $("#IndustryResponsiveFilterService").collapse('show');
+    $("#IndustryResponsiveFilterChevron").removeClass("arrow-down");
+    $("#IndustryResponsiveFilterChevron").addClass("arrow-up");
+    $("#EventLangResponsivePreferenceService").collapse('show');
+    $("#EventLanguageResponsivePreferenceArrow").removeClass("arrow-down");
+    $("#EventLanguageResponsivePreferenceArrow").addClass("arrow-up");
+    $("#EventdeliveryLangResponsivePreferenceService").collapse('show');
+    $("#EventdeliveryLanguageResponsivePreferenceArrow").removeClass("arrow-down");
+    $("#EventdeliveryLanguageResponsivePreferenceArrow").addClass("arrow-up");
+    $("#EventsubtitleLangResponsivePreferenceService").collapse('show');
+    $("#EventsubtitleLanguageResponsivePreferenceArrow").removeClass("arrow-down");
+    $("#EventsubtitleLanguageResponsivePreferenceArrow").addClass("arrow-up");
+    $("#EventTimimgResponsivePreferenceService").collapse('show');
+    $("#EventTimeResponsivePreferenceChevron").removeClass("arrow-down");
+    $("#EventTimeResponsivePreferenceChevron").addClass("arrow-up");
+    $("#EventFormatResponsivePreferenceService").collapse('show');
+    $("#EventFormatResponsivePreferenceChevron").removeClass("arrow-down");
+    $("#EventFormatResponsivePreferenceChevron").addClass("arrow-up");
+    $("#EventLocationResponsivePreferenceService").collapse('show');
+    $("#EventLocationResponsivePreferenceChevron").removeClass("arrow-down");
+    $("#EventLocationResponsivePreferenceChevron").addClass("arrow-up");
+    $("#ExpandAllResponsiveFilters").addClass("hide-dom-element");
+    $("#CollapseAllResponsiveFilters").removeClass("hide-dom-element");
+});
+
+// collapseall button functionality for mobile filter menu
+$("#CollapseAllResponsiveFilters").click(function () {
+    $("#VirtualTraingProgramResponsiveFilterService").collapse('hide');
+    $("#VirtualTraingProgramResponsiveFilterButton").attr("aria-expanded", "false");
+    $("#ProductResponsiveFilterService").collapse('hide');
+    $("#ProductResponsiveFilterArrow").removeClass("arrow-up");
+    $("#ProductResponsiveFilterArrow").addClass("arrow-down");
+    $("#RoleResponsiveFilterService").collapse('hide');
+    $("#RoleResponsiveFilterChevron").removeClass("arrow-up");
+    $("#RoleResponsiveFilterChevron").addClass("arrow-down");
+    $("#IndustryResponsiveFilterService").collapse('hide');
+    $("#IndustryResponsiveFilterChevron").removeClass("arrow-up");
+    $("#IndustryResponsiveFilterChevron").addClass("arrow-down");
+    $("#EventLangResponsivePreferenceService").collapse('hide');
+    $("#EventLanguageResponsivePreferenceArrow").removeClass("arrow-up");
+    $("#EventLanguageResponsivePreferenceArrow").addClass("arrow-down");
+    $("#EventdeliveryLangResponsivePreferenceService").collapse('hide');
+    $("#EventdeliveryLanguageResponsivePreferenceArrow").removeClass("arrow-up");
+    $("#EventdeliveryLanguageResponsivePreferenceArrow").addClass("arrow-down");
+    $("#EventsubtitleLangResponsivePreferenceService").collapse('hide');
+    $("#EventsubtitleLanguageResponsivePreferenceArrow").removeClass("arrow-up");
+    $("#EventsubtitleLanguageResponsivePreferenceArrow").addClass("arrow-down");
+    $("#EventTimimgResponsivePreferenceService").collapse('hide');
+    $("#EventTimeResponsivePreferenceChevron").removeClass("arrow-up");
+    $("#EventTimeResponsivePreferenceChevron").addClass("arrow-down");
+    $("#EventFormatResponsivePreferenceService").collapse('hide');
+    $("#EventFormatResponsivePreferenceChevron").removeClass("arrow-up");
+    $("#EventFormatResponsivePreferenceChevron").addClass("arrow-down");
+    $("#EventLocationResponsivePreferenceService").collapse('hide');
+    $("#EventLocationResponsivePreferenceChevron").removeClass("arrow-up");
+    $("#EventLocationResponsivePreferenceChevron").addClass("arrow-down");
+    $("#ExpandAllResponsiveFilters").removeClass("hide-dom-element");
+    $("#CollapseAllResponsiveFilters").addClass("hide-dom-element");
+});
+
+// check the state of all collspe items and display expandall, collapsell buttons accordingly
+function CheckResponsiveFilterAccordiansState(filterwithactiveonclick) {
+    if ($("#ProductResponsiveFilterService").length > 0) {
+        // jquery is retruning previus state of collspse item when it is clicked
+        // so a validation is made for onclicked item and bool value is reversed to get current state
+        if (filterwithactiveonclick === GlobalProductFilterNameContsant) {
+            var isproductexpanded = !$("#ProductResponsiveFilterService").is(":visible");
+        } else {
+            var isproductexpanded = $("#ProductResponsiveFilterService").is(":visible");
+        }
+        if (filterwithactiveonclick === GlobalScenarioFilterNameContsant) {
+            var isscenarioexpanded = !$("#VirtualTraingProgramFilterService").is(":visible");
+        } else {
+            var isscenarioexpanded = $("#VirtualTraingProgramFilterService").is(":visible");
+        }
+        if (filterwithactiveonclick === GlobalRoleFilterNameContsant ) {
+            var isroleexpanded = !$("#RoleResponsiveFilterService").is(":visible");
+        } else {
+            var isroleexpanded = $("#RoleResponsiveFilterService").is(":visible");
+        }
+        if (filterwithactiveonclick === GlobalIndustryFilterNameContsant) {
+            var isindustryexpanded = !$("#IndustryResponsiveFilterService").is(":visible");
+        } else {
+            var isindustryexpanded = $("#IndustryResponsiveFilterService").is(":visible");
+        }
+        if (filterwithactiveonclick === GlobalLangugeFilterNameContsant) {
+            var islanguageexpanded = !$("#EventLangResponsivePreferenceService").is(":visible");
+        } else {
+            var islanguageexpanded = $("#EventLangResponsivePreferenceService").is(":visible");
+        }
+        if (filterwithactiveonclick === GlobaldeliveryLangugeFilterNameContsant) {
+            var isdeliverylanguageexpanded = !$("#EventdeliveryLangResponsivePreferenceService").is(":visible");
+        } else {
+            var isdeliverylanguageexpanded = $("#EventdeliveryLangResponsivePreferenceService").is(":visible");
+        }
+        if (filterwithactiveonclick === GlobalsubtitleLangugeFilterNameContsant) {
+            var issubtitlelanguageexpanded = !$("#EventsubtitleLangResponsivePreferenceService").is(":visible");
+        } else {
+            var issubtitlelanguageexpanded = $("#EventsubtitleLangResponsivePreferenceService").is(":visible");
+        }
+        if (filterwithactiveonclick === "time") {
+            var istimeexpanded = !$("#EventTimimgResponsivePreferenceService").is(":visible");
+        } else {
+            var istimeexpanded = $("#EventTimimgResponsivePreferenceService").is(":visible");
+        }
+        if (filterwithactiveonclick === GlobalFormatFilterNameContsant) {
+            var isformatexpanded = !$("#EventFormatResponsivePreferenceService").is(":visible");
+        } else {
+            var isformatexpanded = $("#EventFormatResponsivePreferenceService").is(":visible");
+        }
+        if (filterwithactiveonclick === GlobalLocationFilterNameContsant) {
+            var islocationexpanded = !$("#EventLocationResponsivePreferenceService").is(":visible");
+        } else {
+            var islocationexpanded = $("#EventLocationResponsivePreferenceService").is(":visible");
+        }
+
+        if (isproductexpanded && isscenarioexpanded && isroleexpanded && isindustryexpanded && islanguageexpanded && isdeliverylanguageexpanded && issubtitlelanguageexpanded && istimeexpanded &&
+            isformatexpanded && islocationexpanded) {
+            $("#ExpandAllResponsiveFilters").addClass("hide-dom-element");
+            $("#CollapseAllResponsiveFilters").removeClass("hide-dom-element");
+        }
+
+        if (!isproductexpanded && !isscenarioexpanded && !isroleexpanded && !isindustryexpanded && !islanguageexpanded && !isdeliverylanguageexpanded && !issubtitlelanguageexpanded && !istimeexpanded &&
+            !isformatexpanded && !islocationexpanded) {
+            $("#ExpandAllResponsiveFilters").removeClass("hide-dom-element");
+            $("#CollapseAllResponsiveFilters").addClass("hide-dom-element");
+        }
+    } else {
+        // jquery is retruning previus state of collspse item when it is clicked
+        // so a validation is made for onclicked item and bool value is reversed to get current state
+        if (filterwithactiveonclick === GlobalScenarioFilterNameContsant) {
+            var isscenarioexpanded = !$("#VirtualTraingProgramFilterService").is(":visible");
+        } else {
+            var isscenarioexpanded = $("#VirtualTraingProgramFilterService").is(":visible");
+        }
+        if (filterwithactiveonclick === GlobalRoleFilterNameContsant ) {
+            var isroleexpanded = !$("#RoleResponsiveFilterService").is(":visible");
+        } else {
+            var isroleexpanded = $("#RoleResponsiveFilterService").is(":visible");
+        }
+        if (filterwithactiveonclick === GlobalIndustryFilterNameContsant) {
+            var isindustryexpanded = !$("#IndustryResponsiveFilterService").is(":visible");
+        } else {
+            var isindustryexpanded = $("#IndustryResponsiveFilterService").is(":visible");
+        }
+        if (filterwithactiveonclick === GlobalLangugeFilterNameContsant) {
+            var islanguageexpanded = !$("#EventLangResponsivePreferenceService").is(":visible");
+        } else {
+            var islanguageexpanded = $("#EventLangResponsivePreferenceService").is(":visible");
+        }
+        if (filterwithactiveonclick === GlobaldeliveryLangugeFilterNameContsant) {
+            var isdeliverylanguageexpanded = !$("#EventdeliveryLangResponsivePreferenceService").is(":visible");
+        } else {
+            var isdeliverylanguageexpanded = $("#EventdeliveryLangResponsivePreferenceService").is(":visible");
+        }
+        if (filterwithactiveonclick === GlobalsubtitleLangugeFilterNameContsant) {
+            var issubtitlelanguageexpanded = !$("#EventsubtitleLangResponsivePreferenceService").is(":visible");
+        } else {
+            var issubtitlelanguageexpanded = $("#EventsubtitleLangResponsivePreferenceService").is(":visible");
+        }
+        if (filterwithactiveonclick === "time") {
+            var istimeexpanded = !$("#EventTimimgResponsivePreferenceService").is(":visible");
+        } else {
+            var istimeexpanded = $("#EventTimimgResponsivePreferenceService").is(":visible");
+        }
+        if (filterwithactiveonclick === GlobalFormatFilterNameContsant) {
+            var isformatexpanded = !$("#EventFormatResponsivePreferenceService").is(":visible");
+        } else {
+            var isformatexpanded = $("#EventFormatResponsivePreferenceService").is(":visible");
+        }
+        if (filterwithactiveonclick === GlobalLocationFilterNameContsant) {
+            var islocationexpanded = !$("#EventLocationResponsivePreferenceService").is(":visible");
+        } else {
+            var islocationexpanded = $("#EventLocationResponsivePreferenceService").is(":visible");
+        }
+
+        if (isroleexpanded && isscenarioexpanded && isindustryexpanded && islanguageexpanded && isdeliverylanguageexpanded && issubtitlelanguageexpanded && istimeexpanded &&
+            isformatexpanded && islocationexpanded) {
+            $("#ExpandAllResponsiveFilters").addClass("hide-dom-element");
+            $("#CollapseAllResponsiveFilters").removeClass("hide-dom-element");
+        }
+
+        if (!isroleexpanded && !isscenarioexpanded && !isindustryexpanded && !islanguageexpanded && isdeliverylanguageexpanded && issubtitlelanguageexpanded && !istimeexpanded &&
+            !isformatexpanded && !islocationexpanded) {
+            $("#ExpandAllResponsiveFilters").removeClass("hide-dom-element");
+            $("#CollapseAllResponsiveFilters").addClass("hide-dom-element");
+        }
+    }
+}
+
+$("#VirtualTraingProgramResponsiveFilterButton").click(function () {
+    CheckFilterAccordiansState(GlobalScenarioFilterNameContsant);
+});
+
+$("#ProductResponsiveFilterButton").click(function () {
+    $("#ProductResponsiveFilterService").on('show.bs.collapse', function () {
+        $("#ProductResponsiveFilterArrow").removeClass("arrow-down");
+        $("#ProductResponsiveFilterArrow").addClass("arrow-up");
+    });
+    $("#ProductResponsiveFilterService").on('hide.bs.collapse', function () {
+        $("#ProductResponsiveFilterArrow").removeClass("arrow-up");
+        $("#ProductResponsiveFilterArrow").addClass("arrow-down");
+    });
+
+    CheckResponsiveFilterAccordiansState(GlobalProductFilterNameContsant);
+});
+
+$("#RoleResponsiveFilterButton").click(function () {
+    $("#RoleResponsiveFilterService").on('show.bs.collapse', function () {
+        $("#RoleResponsiveFilterChevron").removeClass("arrow-down");
+        $("#RoleResponsiveFilterChevron").addClass("arrow-up");
+    });
+    $("#RoleResponsiveFilterService").on('hide.bs.collapse', function () {
+        $("#RoleResponsiveFilterChevron").removeClass("arrow-up");
+        $("#RoleResponsiveFilterChevron").addClass("arrow-down");
+    });
+
+    CheckResponsiveFilterAccordiansState(GlobalRoleFilterNameContsant );
+});
+
+$("#IndustryResponsiveFilterButton").click(function () {
+    $("#IndustryResponsiveFilterService").on('show.bs.collapse', function () {
+        $("#IndustryResponsiveFilterChevron").removeClass("arrow-down");
+        $("#IndustryResponsiveFilterChevron").addClass("arrow-up");
+    });
+    $("#IndustryResponsiveFilterService").on('hide.bs.collapse', function () {
+        $("#IndustryResponsiveFilterChevron").removeClass("arrow-up");
+        $("#IndustryResponsiveFilterChevron").addClass("arrow-down");
+    });
+
+    CheckResponsiveFilterAccordiansState(GlobalIndustryFilterNameContsant);
+});
+
+$("#EventLanguageResponsivePreferenceButton").click(function () {
+    $("#EventLangResponsivePreferenceService").on('show.bs.collapse', function () {
+        $("#EventLanguageResponsivePreferenceArrow").removeClass("arrow-down");
+        $("#EventLanguageResponsivePreferenceArrow").addClass("arrow-up");
+    });
+    $("#EventLangResponsivePreferenceService").on('hide.bs.collapse', function () {
+        $("#EventLanguageResponsivePreferenceArrow").removeClass("arrow-up");
+        $("#EventLanguageResponsivePreferenceArrow").addClass("arrow-down");
+    });
+
+    CheckResponsiveFilterAccordiansState(GlobalLangugeFilterNameContsant);
+});
+
+$("#EventdeliveryLanguageResponsivePreferenceButton").click(function () {
+    $("#EventdeliveryLangResponsivePreferenceService").on('show.bs.collapse', function () {
+        $("#EventdeliveryLanguageResponsivePreferenceArrow").removeClass("arrow-down");
+        $("#EventdeliveryLanguageResponsivePreferenceArrow").addClass("arrow-up");
+    });
+    $("#EventdeliveryLangResponsivePreferenceService").on('hide.bs.collapse', function () {
+        $("#EventdeliveryLanguageResponsivePreferenceArrow").removeClass("arrow-up");
+        $("#EventdeliveryLanguageResponsivePreferenceArrow").addClass("arrow-down");
+    });
+
+    CheckResponsiveFilterAccordiansState(GlobaldeliveryLangugeFilterNameContsant);
+});
+
+
+$("#EventsubtitleLanguageResponsivePreferenceButton").click(function () {
+    $("#EventsubtitleLangResponsivePreferenceService").on('show.bs.collapse', function () {
+        $("#EventsubtitleLanguageResponsivePreferenceArrow").removeClass("arrow-down");
+        $("#EventsubtitleLanguageResponsivePreferenceArrow").addClass("arrow-up");
+    });
+    $("#EventsubtitleLangResponsivePreferenceService").on('hide.bs.collapse', function () {
+        $("#EventsubtitleLanguageResponsivePreferenceArrow").removeClass("arrow-up");
+        $("#EventsubtitleLanguageResponsivePreferenceArrow").addClass("arrow-down");
+    });
+
+    CheckResponsiveFilterAccordiansState(GlobalsubtitleLangugeFilterNameContsant);
+});
+
+$("#EventTimingResponsivePreferenceButton").click(function () {
+    $("#EventTimimgResponsivePreferenceService").on('show.bs.collapse', function () {
+        $("#EventTimeResponsivePreferenceChevron").removeClass("arrow-down");
+        $("#EventTimeResponsivePreferenceChevron").addClass("arrow-up");
+    });
+    $("#EventTimimgResponsivePreferenceService").on('hide.bs.collapse', function () {
+        $("#EventTimeResponsivePreferenceChevron").removeClass("arrow-up");
+        $("#EventTimeResponsivePreferenceChevron").addClass("arrow-down");
+    });
+
+    CheckResponsiveFilterAccordiansState("time");
+});
+
+$("#EventFormatResponsivePreferenceButton").click(function () {
+    $("#EventFormatResponsivePreferenceService").on('show.bs.collapse', function () {
+        $("#EventFormatResponsivePreferenceChevron").removeClass("arrow-down");
+        $("#EventFormatResponsivePreferenceChevron").addClass("arrow-up");
+    });
+    $("#EventFormatResponsivePreferenceService").on('hide.bs.collapse', function () {
+        $("#EventFormatResponsivePreferenceChevron").removeClass("arrow-up");
+        $("#EventFormatResponsivePreferenceChevron").addClass("arrow-down");
+    });
+
+    CheckResponsiveFilterAccordiansState(GlobalFormatFilterNameContsant);
+});
+
+$("#EventLocationResponsivePreferenceButton").click(function () {
+    $("#EventLocationResponsivePreferenceService").on('show.bs.collapse', function () {
+        $("#EventLocationResponsivePreferenceChevron").removeClass("arrow-down");
+        $("#EventLocationResponsivePreferenceChevron").addClass("arrow-up");
+    });
+    $("#EventLocationResponsivePreferenceService").on('hide.bs.collapse', function () {
+        $("#EventLocationResponsivePreferenceChevron").removeClass("arrow-up");
+        $("#EventLocationResponsivePreferenceChevron").addClass("arrow-down");
+    });
+
+    CheckResponsiveFilterAccordiansState(GlobalLocationFilterNameContsant);
+});
+
+function RemoveAppliedResponsiveFilters(filtername, inputvalue, appliedfilterbtnid, filterlocalstoragekey) {
+    if (filtername === GlobalLangugeFilterNameContsant) {
+        var inputcontrolid = inputvalue.replace(/[0-9`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '').replace(/ /g, '') + "responsivelanguageinputid";
+    } else {
+        var inputcontrolid = inputvalue.replace(/[^A-Z0-9]/ig, "");
+    }
+    if (filtername === GlobaldeliveryLangugeFilterNameContsant) {
+        var inputcontrolid = inputvalue.replace(/[0-9`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '').replace(/ /g, '') + "responsivedeliverylanguageinputid";
+    } else {
+        var inputcontrolid = inputvalue.replace(/[^A-Z0-9]/ig, "");
+    }
+    if (filtername === GlobalsubtitleLangugeFilterNameContsant) {
+        var inputcontrolid = inputvalue.replace(/[0-9`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '').replace(/ /g, '') + "responsivesubtitlelanguageinputid";
+    } else {
+        var inputcontrolid = inputvalue.replace(/[^A-Z0-9]/ig, "");
+    }
+    if (filtername === GlobalLangugeFilterNameContsant) {
+        var inputresponsivecontrolid = inputvalue.replace(/[0-9`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '').replace(/ /g, '') + "responsivelanguageinputid";
+    } else {
+        var inputresponsivecontrolid = inputvalue.replace(/[^A-Z0-9]/ig, "") + "ResponsiveFilterItem";
+    }
+    if (filtername === GlobaldeliveryLangugeFilterNameContsant) {
+        var inputresponsivecontrolid = inputvalue.replace(/[0-9`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '').replace(/ /g, '') + "responsivedeliverylanguageinputid";
+    } else {
+        var inputresponsivecontrolid = inputvalue.replace(/[^A-Z0-9]/ig, "") + "ResponsivedeliveryFilterItem";
+    }
+    if (filtername === GlobalsubtitleLangugeFilterNameContsant) {
+        var inputresponsivecontrolid = inputvalue.replace(/[0-9`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '').replace(/ /g, '') + "responsivesubtitlelanguageinputid";
+    } else {
+        var inputresponsivecontrolid = inputvalue.replace(/[^A-Z0-9]/ig, "") + "ResponsivesubtitleFilterItem";
+    }
+
+
+    $("body").on("click", "#" + appliedfilterbtnid, function () {
+        if (filtername == 'language' || filtername == 'subtitlelanguage' || filtername == 'deliverylanguage') {
+            $("#" + inputresponsivecontrolid).prop("checked", false);
+        }
+        else {
+            if ($("#" + inputcontrolid).is(":checkbox")) {
+                $("#" + inputcontrolid).prop("checked", false);
+            }
+            if ($("#" + inputcontrolid).is(":radio")) {
+                $("#" + inputcontrolid).prop("checked", false);
+            }
+        }
+        $("#" + appliedfilterbtnid).remove();
+
+        // hide applied filters section when no filters are applied
+        if ($(".filterbtn-container").is(":empty")) {
+            $(".applied-filters").hide();
+        }
+
+        // delete filter value from localstorage
+        if (filterlocalstoragekey != null) {
+            var lsdeletequerystring = filtername + "=" + inputvalue.replace(/\&/g, "%26");
+            DeleteFilterQueryFromLocalStorage(filterlocalstoragekey, lsdeletequerystring);
+        }
+
+        AjaxCallForEventsData(filtername, inputvalue)
+    });
+}
+
+// prevent enter key functionality in eventlocationearch textbox
+$('#ResponsiveEventsLocations').keypress(function (event) {
+    if (event.keyCode == 13) {
+        event.preventDefault();
+    }
+});
+
+$("#ResponsiveEventsLocations").keyup(function (e) {
+    // dispaly clear field button when user starts typing in search box
+    var searchkeyword = $.trim($("#ResponsiveEventsLocations").val());
+    if (searchkeyword != '') {
+        $("#ClearResponsiveEventsLocationField").removeClass("hide-dom-element");
+        // show responsive clear all preferences button
+        $('#ClearAllResponsivePreferences').show();
+    } else {
+        $("#ClearResponsiveEventsLocationField").addClass("hide-dom-element");
+        // hide responsive clear all preferences button if no prefernce refiner is added to events
+        if ($('input[name="languageresponsivepreference"]:checked').length == 0 && $('input[name="deliverylanguageresponsivepreference"]:checked').length == 0 && $('input[name="subtitlelanguageresponsivepreference"]:checked').length == 0 && $("#EventStartTimeResponsiveFilterItem").val().toLowerCase() === "12:00 am" &&
+            $("#EventEndTimeResponsiveFilterItem").val().toLowerCase() === "11:59 pm" && $('input[name="eventformatresponsivepreference"]:checked').length == 0
+            && $.trim($("#ResponsiveEventsLocations").val()) === '' && $('#ResponsiveSwitchEventTimeZoneToUserLocale:checked').length == 0) {
+            $('#ClearAllResponsivePreferences').hide();
+        }
+
+        // deselect distance radio buttons, remove dynamic filter applied button and hide the content
+        $('input[name="responsivedistancepreference"]').prop("checked", false);
+        $("#ResponsiveLocationDistanceContent").addClass("hide-dom-element");
+        if ($('button[name="' + GlobalDistanceRadioButtonNameConstant + '"]').length > 0) {
+            $('button[name="' + GlobalDistanceRadioButtonNameConstant + '"]').remove();
+        }
+    }
+
+    // if user starts typing change autocomplete source to all location values, 
+    // if the textbox is empty display geolocation values on focus
+    var responsivelocationsarray = [];
+    if (searchkeyword === '') {
+        if (GeoLocationLatitudeValue != null && GeoLocationLongitueValue !== null) {
+            if ($("#GeoLocationEventsList").length > 0) {
+                var defaultcontent = { value: "Events near current location", label: "Events near current location", disabled: true };
+                responsivelocationsarray.push(defaultcontent);
+                $("#GeoLocationEventsResponsiveList li").each(function () {
+                    responsivelocationsarray.push({ value: $(this).text(), label: $(this).text(), disabled: false });
+                });
+            } else {
+                var defaultcontent = { value: "No events near current location", label: "No events near current location", disabled: true };
+                responsivelocationsarray.push(defaultcontent);
+                $("#AllEventsLocationResponsiveList li").each(function () {
+                    responsivelocationsarray.push({ value: $(this).text(), label: $(this).text(), disabled: false });
+                });
+            }
+        } else {
+            $("#AllEventsLocationResponsiveList li").each(function () {
+                responsivelocationsarray.push({ value: $(this).text(), label: $(this).text(), disabled: false });
+            });
+        }
+    } else {
+        $("#AllEventsLocationResponsiveList li").each(function () {
+            responsivelocationsarray.push({ value: $(this).text(), label: $(this).text(), disabled: false });
+        });
+    }
+    TriggerAutoCompleteFunctionalityForResponsiveFilter(responsivelocationsarray);
+});
+
+var isStartTimeFilterApplied = false;
+var isShowInLocalTimeFilterApplied = false;
+var selectedresponsivescenarionamearray = [];
+var unselectedresponsivescenarionamearray = [];
+var selectedresponsiveproductarray = [];
+var unselectedresponsiveproductarray = [];
+var selectedresponsiverolearray = [];
+var unselectedresponsiverolearray = [];
+var selectedresponsiveindustryarray = [];
+var unselectedresponsiveindustryarray = [];
+var selectedresponsivelanguagearray = [];
+var unselectedresponsivelanguagearray = [];
+var selectedresponsivedeliverylanguagearray = [];
+var unselectedresponsivedeliverylanguagearray = [];
+var selectedresponsivesubtitlelanguagearray = [];
+var unselectedresponsivesubtitlelanguagearray = [];
+var selectedresponsiveformatarray = [];
+var unselectedresponsiveformatarray = [];
+var responsivestarttimequery = null;
+var responsiveendtimequery = null;
+var responsiveeventlocationsearch = null;
+var responsiveeventlocationforclearallprefrencesbutton = null;
+var selectedlocationdistancearray = [];
+var unselectedlocationdistancearray = [];
+var selectedresponsiveswitchtimezonearray = [];
+var unselectedresponsiveswitchtimezonearray = [];
+
+function ApplyResponsiveLocationDistanceFilter() {
+    if (selectedlocationdistancearray.length > 0) {
+        selectedlocationdistancearray.length = 0;
+    }
+    if (unselectedlocationdistancearray.length > 0) {
+        unselectedlocationdistancearray.length = 0;
+    }
+    $('input[name="responsivedistancepreference"]:checked').each(function () {
+        var dynamicbuttontext = GlobalDistanceRadioButtonNameConstant;
+        var selectedresponsivefilterdistance = $(this).val();
+        var selectedresponsivefilterdistancebtnid = (GlobalDistanceFilterNameConstant + selectedresponsivefilterdistance).replace(/[^A-Z0-9]/ig, "") + "PreferenceApplied";
+        if ($("#" + selectedresponsivefilterdistancebtnid).length == 0) {
+            CreateDynamicFilterButtonForRadioButtons(selectedresponsivefilterdistance, dynamicbuttontext, selectedresponsivefilterdistancebtnid);
+
+            // check if the remove applied filter is already applied during the page load for this selected value.
+            // if already applied skip this remove functionality or else apply it
+            var isremovealreadyexists = false;
+            $.each(LocationDistanceArrayForDefaultRemoveFilterAppliedFromURL, function (index, value) {
+                if (value == selectedresponsivefilterdistance) {
+                    isremovealreadyexists = true;
+                    return false;
+                }
+            });
+            if (!isremovealreadyexists) {
+                if (LocationDistanceArrayForSelectedValues.length === 0) {
+                    RemoveAppliedResponsiveFilters(GlobalDistanceFilterNameConstant, selectedresponsivefilterdistance, selectedresponsivefilterdistancebtnid, EventLocationDistanceFilterQueryLocalStorageKey);
+                    LocationDistanceArrayForSelectedValues.push(selectedresponsivefilterdistance);
+                } else {
+                    var isremovefilteralreadyranforthisfiltervalue = false;
+                    $.each(LocationDistanceArrayForSelectedValues, function (selectedfiltervalueindex, selectedfiltervalue) {
+                        if (selectedresponsivefilterdistance === selectedfiltervalue) {
+                            isremovefilteralreadyranforthisfiltervalue = true;
+                            return false;
+                        }
+                    });
+                    if (!isremovefilteralreadyranforthisfiltervalue) {
+                        RemoveAppliedResponsiveFilters(GlobalDistanceFilterNameConstant, selectedresponsivefilterdistance, selectedresponsivefilterdistancebtnid, EventLocationDistanceFilterQueryLocalStorageKey);
+                        LocationDistanceArrayForSelectedValues.push(selectedresponsivefilterdistance);
+                    }
+                }
+            }
+        };
+        selectedlocationdistancearray.push(selectedresponsivefilterdistance);
+
+        // clear distance filter in localstorage before storing the filter value
+        localStorage.removeItem(EventLocationDistanceFilterQueryLocalStorageKey);
+        // add selected value into local storage
+        var lsquerystring = GlobalDistanceFilterNameConstant + "=" + selecteddistance.replace(/\%26/g, "&");
+        AddFilterQueryToLocalStorage(EventLocationDistanceFilterQueryLocalStorageKey, lsquerystring);
+    });
+
+    $('input[name="responsivedistancepreference"]:not(:checked)').each(function () {
+        var unselectedresponsivefilterdistancet = $(this).val();
+        var ununselectedresponsivefilterdistancetbtnid = (GlobalDistanceFilterNameConstant + unselectedresponsivefilterdistancet).replace(/[^A-Z0-9]/ig, "") + "PreferenceApplied";
+        if ($("#" + ununselectedresponsivefilterdistancetbtnid).length > 0) {
+            $("#" + ununselectedresponsivefilterdistancetbtnid).remove();
+        };
+        unselectedlocationdistancearray.push(unselectedresponsivefilterdistancet);
+
+        //delete location distance value from localstorage
+        localStorage.removeItem(EventLocationDistanceFilterQueryLocalStorageKey);
+    });
+}
+
+$("#ClearResponsiveEventsLocationField").click(function () {
+    var emptyvalue = '';
+    $("#ResponsiveEventsLocations").val(emptyvalue);
+    // hide responsive clear all preferences button if no prefernce refiner is added to events
+    if ($('input[name="languageresponsivepreference"]:checked').length == 0 && $('input[name="delivery=languageresponsivepreference"]:checked').length == 0 && $('input[name="subtitlelanguageresponsivepreference"]:checked').length == 0 && $("#EventStartTimeResponsiveFilterItem").val().toLowerCase() === "12:00 am" &&
+        $("#EventEndTimeResponsiveFilterItem").val().toLowerCase() === "11:59 pm" && $('input[name="eventformatresponsivepreference"]:checked').length == 0
+        && $.trim($("#ResponsiveEventsLocations").val()) === '' && $('#ResponsiveSwitchEventTimeZoneToUserLocale:checked').length == 0) {
+        $('#ClearAllResponsivePreferences').hide();
+    }
+    responsiveeventlocationsearch = null;
+    $("#ClearResponsiveEventsLocationField").addClass("hide-dom-element");
+
+    // deselect distance radio buttons, remove dynamic filter applied button and hide the content
+    $('input[name="responsivedistancepreference"]').prop("checked", false);
+    $("#ResponsiveLocationDistanceContent").addClass("hide-dom-element");
+    if ($('button[name="' + GlobalDistanceRadioButtonNameConstant + '"]').length > 0) {
+        $('button[name="' + GlobalDistanceRadioButtonNameConstant + '"]').remove();
+    }
+
+    // delete location value from localstorage
+    localStorage.removeItem(EventLocationFilterQueryLocalStorageKey);
+    //delete location distance value from localstorage
+    localStorage.removeItem(EventLocationDistanceFilterQueryLocalStorageKey);
+});
+
+function ApplyResponsiveEventLocationFilter() {
+    if (responsiveeventlocationsearch != null) {
+        responsiveeventlocationsearch = null;
+    }
+    var searchkeyword = $.trim($("#ResponsiveEventsLocations").val());
+    var searchkeywordbtnid = (GlobalLocationFilterNameContsant + searchkeyword).replace(/[^A-Z0-9]/ig, "") + "PreferenceApplied";
+    if (searchkeyword != '') {
+        CreateDynamicAppliedSearchFilterButton(GlobalLocationSearchFilterBtnNameConstant, searchkeyword, searchkeywordbtnid);
+        responsiveeventlocationsearch = GlobalLocationFilterNameContsant + "=" + searchkeyword;
+
+        if (EventsLocationArrayForSelectedFilterValues.length === 0) {
+            RemoveAppliedSearchEventsFilters(GlobalLocationFilterNameContsant, "ResponsiveEventsLocations", searchkeywordbtnid, EventLocationFilterQueryLocalStorageKey);
+            EventsLocationArrayForSelectedFilterValues.push(searchkeyword);
+        } else {
+            var isremovefilteralreadyranforthisfiltervalue = false;
+            $.each(EventsLocationArrayForSelectedFilterValues, function (selectedfiltervalueindex, selectedfiltervalue) {
+                if (searchkeyword === selectedfiltervalue) {
+                    isremovefilteralreadyranforthisfiltervalue = true;
+                    return false;
+                }
+            });
+            if (!isremovefilteralreadyranforthisfiltervalue) {
+                RemoveAppliedSearchEventsFilters(GlobalLocationFilterNameContsant, "ResponsiveEventsLocations", searchkeywordbtnid, EventLocationFilterQueryLocalStorageKey);
+                EventsLocationArrayForSelectedFilterValues.push(searchkeyword);
+            }
+        }
+
+        // clear location filter in localstorage before storing the filter value
+        localStorage.removeItem(EventLocationFilterQueryLocalStorageKey);
+        // add selected value into local storage
+        var lsquerystring = GlobalLocationFilterNameContsant + "=" + searchkeyword.replace(/\%26/g, "&");
+        AddFilterQueryToLocalStorage(EventLocationFilterQueryLocalStorageKey, lsquerystring);
+    } else {
+        responsiveeventlocationsearch = null;
+        if ($('button[name="' + GlobalLocationSearchFilterBtnNameConstant + '"]').length > 0) {
+            $('button[name="' + GlobalLocationSearchFilterBtnNameConstant + '"]').remove();
+        }
+
+        // delete filter value from localstorage
+        localStorage.removeItem(EventLocationFilterQueryLocalStorageKey);
+        //delete location distance value from localstorage
+        localStorage.removeItem(EventLocationDistanceFilterQueryLocalStorageKey);
+    }
+}
+
+function ApplyEventsTimeResponsiveFilter() {
+    convertResponsiveSliderValuesToTime($("#timerange-responsiveslider").slider("values", 0), $("#timerange-responsiveslider").slider("values", 1));
+    var starttime = $("#EventStartTimeResponsiveFilterItem").val();
+    var endtime = $("#EventEndTimeResponsiveFilterItem").val();
+    var RegexForTimeValidation = new RegExp("^(1[0-2]|0?[1-9]):[0-5][0-9] (AM|PM)$", "i");
+    var starttimevalidation = RegexForTimeValidation.test(starttime);
+    var endtimevalidation = RegexForTimeValidation.test(endtime);
+    if (starttimevalidation && endtimevalidation) {
+        var selectedtimeperiod = starttime + "-" + endtime;
+        var selctedtimeperiodbtnid = (selectedtimeperiod).replace(/[^A-Z0-9]/ig, "") + "PreferenceApplied";
+        if (starttime.toLowerCase() !== "12:00 am" || endtime.toLowerCase() !== "11:59 pm") {
+            isStartTimeFilterApplied = true;
+
+            // build time querystring value to pass through url
+            responsivestarttimequery = ConvertTo24HrsTime(starttime);
+            responsiveendtimequery = ConvertTo24HrsTime(endtime);
+
+            CreateDynamicTimeIntervalFilterButton(selectedtimeperiod, selctedtimeperiodbtnid);
+            RemoveResponsiveDynamicTimeIntervalFilterApplied(selctedtimeperiodbtnid);
+
+            // add or delete filter values in local storage
+            if (responsivestarttimequery != "00:00" || responsiveendtimequery != "23:59") {
+                // clear localstorage starttime and endtime values beofre adding new values
+                localStorage.removeItem(EventStartTimeIntervalStartingValueLocalStorageKey);
+                localStorage.removeItem(EventStartTimeIntervalEndValueLocalStorageKey);
+
+                // add start time in local storage
+                var lsstarttimequerystring = GlobalStartTimeFilterNameContsant + "=" + responsivestarttimequery.replace(/\%26/g, "&");
+                AddFilterQueryToLocalStorage(EventStartTimeIntervalStartingValueLocalStorageKey, lsstarttimequerystring);
+                // add end time in local storage
+                var lsendtimequerystring = GlobalEndTimeFilterNameContsant + "=" + responsiveendtimequery.replace(/\%26/g, "&");
+                AddFilterQueryToLocalStorage(EventStartTimeIntervalEndValueLocalStorageKey, lsendtimequerystring);
+            } else {
+                // delete localstorage starttime and endtime values
+                localStorage.removeItem(EventStartTimeIntervalStartingValueLocalStorageKey);
+                localStorage.removeItem(EventStartTimeIntervalEndValueLocalStorageKey);
+            }
+        } else {
+            isStartTimeFilterApplied = false;
+            responsivestarttimequery = "00:00";
+            responsiveendtimequery = "23:59";
+            // remove already available applied filter button
+            if ($('button[name="timeperiodfilterapplied"]').length > 0) {
+                $('button[name="timeperiodfilterapplied"]').remove();
+            }
+        }
+    }
+}
+
+function RemoveResponsiveDynamicTimeIntervalFilterApplied(appliedfilterbtnid) {
+    $("body").on("click", "#" + appliedfilterbtnid, function () {
+        $("#timerange-responsiveslider").slider({
+            range: true,
+            min: 0,
+            max: 1439,
+            values: [0, 1439]
+        });
+        $("#" + appliedfilterbtnid).remove();
+
+        // hide applied filters section when no filters are applied
+        if ($(".filterbtn-container").is(":empty")) {
+            $(".applied-filters").hide();
+        }
+
+        // delete localstorage starttime and endtime values
+        localStorage.removeItem(EventStartTimeIntervalStartingValueLocalStorageKey);
+        localStorage.removeItem(EventStartTimeIntervalEndValueLocalStorageKey);
+
+        convertResponsiveSliderValuesToTime($("#timerange-responsiveslider").slider("values", 0), $("#timerange-responsiveslider").slider("values", 1));
+
+        var eventsURL = decodeURI(window.location.href);
+        var islistcardview = false;
+        if ($("#EventListCardToggleButton").hasClass("listcard-togglebtn-active")) {
+            islistcardview = true;
+        }
+        var urloriginandpatharray = eventsURL.split("?");
+        if (urloriginandpatharray[1].length > 0) {
+            var urlpatharray = urloriginandpatharray[1].split("&");
+            $.each(urlpatharray, function (index, value) {
+                if (value.indexOf(GlobalStartTimeFilterNameContsant + "=") > -1) {
+                    urlpatharray.splice(index, 1);
+                    return false;
+                }
+            });
+            $.each(urlpatharray, function (index, value) {
+                if (value.indexOf(GlobalEndTimeFilterNameContsant + "=") > -1) {
+                    urlpatharray.splice(index, 1);
+                    return false;
+                }
+            });
+
+            urloriginandpatharray[1] = urlpatharray.join("&");
+        }
+
+        if (urloriginandpatharray[1].length > 0) {
+            var ajaxeventsurl = encodeURI(urloriginandpatharray.join("?"));
+        } else {
+            if (urloriginandpatharray.length > 2) {
+                var newfilteredurloriginandpatharray = RemoveNullorEmptyElementsFromArray(urloriginandpatharray);
+                var ajaxeventsurl = encodeURI(newfilteredurloriginandpatharray.join("?"));
+            } else {
+                var ajaxeventsurl = encodeURI(urloriginandpatharray[0]);
+            }
+        }
+
+        // make LangugeFilterApplied to false only if all languge filters are removed
+        if (ajaxeventsurl.indexOf(GlobalLangugeFilterNameContsant + "=") > -1) {
+            LangugeFilterApplied = true;
+        } else {
+            LangugeFilterApplied = false;
+        }
+
+        window.history.pushState({}, null, ajaxeventsurl);
+        $("#ProgressBarContainer").removeClass("hide-dom-element");
+        $.ajax({
+            type: "GET",
+            url: ajaxeventsurl,
+            data: { returnPartialview: true, enableListCardView: islistcardview, latitudeValue: GeoLocationLatitudeValue, longitudeValue: GeoLocationLongitueValue, isLangugeFilterApplied: LangugeFilterApplied, isChineseBowserLocation: IsBrowserLocationInChina },
+            success: function (response) {
+                if (response) {
+                    favDataLoaded = false;
+                    $("#event-summary-panel").html(response.eventsPartialView);
+                    $("#events-filter-panel").html(response.filterLargeScreenPartialView);
+                    $("#events-responsive-filterpanel").html(response.filterSmallScreenPartialView);
+                    updateFavCount();
+                    $("#ProgressBarContainer").addClass("hide-dom-element");
+                    Refinedresultcountfocus();
+                }
+            }
+        });
+
+    });
+}
+
+$('input[name="responsivescenarioheading"]').on("click", function () {
+    // find the appropriate child li items and set the selected value accordingly to subheading value
+    $(this).parents("li.accordian-checkbox").children("ul.subheading-unorderlist").children("li.multiaccordian-checkbox")
+        .children("label.sidebarmenu-selectlabel").children("input[type=checkbox]").prop("checked", $(this).prop("checked"));
+
+    if ($(this).is(":checked")) {
+        // show responsive clear all preferences button
+        $('#ClearAllResponsiveFilters').show();
+    } else {
+        // hide responsive clear all button if no product filter is selected
+        if ($('input[name="responsivescenarioheading"]:checked').length == 0 && $('input[name="responsivescenariosubheading"]:checked').length == 0 && $('input[name="productresponsivefilter"]:checked').length == 0 &&
+            $('input[name="roleresponsivefilter"]:checked').length == 0 && $('input[name="industryresponsivefilter"]:checked').length == 0 && $("#FavDataSpanResponsive").text() === "0") {
+            $('#ClearAllResponsiveFilters').hide();
+        }
+    }
+});
+
+$('input[name="responsivescenariosubheading"]').on("click", function () {
+    var totalsubheadingcheckboxcount = parseInt($(this).parents("ul.subheading-unorderlist").children("li.multiaccordian-checkbox").length);
+    var selectedsubheadingcount = parseInt(0);
+    var parentcheckbox = $(this).parents("li.accordian-checkbox").children("div.multilayer-accordian").children("label.sidebarmenu-selectlabel").children("input[type=checkbox]");
+
+    // get the count of all selected sublevel checkboxes
+    for (var i = 0; i < totalsubheadingcheckboxcount; i++) {
+        if ($(this).parents("ul.subheading-unorderlist").children("li.multiaccordian-checkbox")[i].children[0].children[0].checked) {
+            selectedsubheadingcount++;
+        }
+    }
+
+    // check if all other sublevel checkbox are selected, if all are selcted make the heading checkbox as selected.
+    if (selectedsubheadingcount == totalsubheadingcheckboxcount) {
+        parentcheckbox.prop("checked", true);
+    } else {
+        parentcheckbox.prop("checked", false);
+    }
+
+    if ($(this).is(":checked")) {
+        // show responsive clear all preferences button
+        $('#ClearAllResponsiveFilters').show();
+    } else {
+        // hide responsive clear all button if no product filter is selected
+        if ($('input[name="responsivescenarioheading"]:checked').length == 0 && $('input[name="responsivescenariosubheading"]:checked').length == 0 && $('input[name="productresponsivefilter"]:checked').length == 0 &&
+            $('input[name="roleresponsivefilter"]:checked').length == 0 && $('input[name="industryresponsivefilter"]:checked').length == 0 && $("#FavDataSpanResponsive").text() === "0") {
+            $('#ClearAllResponsiveFilters').hide();
+        }
+    }
+});
+
+function DeleteExistingResponsiveScenarioFilterButtons(filterbuttonid) {
+    $("button[id^='" + filterbuttonid + "']").remove();
+}
+
+function ApplyScenarioNameResponsiveFilter() {
+    if (selectedresponsivescenarionamearray.length > 0) {
+        selectedresponsivescenarionamearray.length = 0;
+    }
+    if (unselectedresponsivescenarionamearray.length > 0) {
+        unselectedresponsivescenarionamearray.length = 0;
+    }
+
+    // push all selected parent checkbox values in to selectedresponsivescenarionamearray array
+    $('input[name="responsivescenarioheading"]:checked').each(function () {
+        var selectedresponsiveparentscenario = $(this).val();
+        selectedresponsivescenarionamearray.push(selectedresponsiveparentscenario);
+    });
+    $('input[name="responsivescenariosubheading"]:checked').each(function () {
+        var selectedresponsivechildscenario = $(this).val();
+        var parentcheckbox = $(this).parents("li.accordian-checkbox").children("div.multilayer-accordian").children("label.sidebarmenu-selectlabel").children("input[type=checkbox]");
+
+        // skip child scenarios if the parent is already selected.
+        if (!parentcheckbox.prop("checked")) {
+            selectedresponsivescenarionamearray.push(selectedresponsivechildscenario);
+        }
+    });
+
+    // push all unselected parent checkbox values in to unselectedresponsivescenarionamearray array
+    $('input[name="responsivescenarioheading"]:not(:checked)').each(function () {
+        var unselectedresponsiveparentscenario = $(this).val();
+        unselectedresponsivescenarionamearray.push(unselectedresponsiveparentscenario);
+    });
+    $('input[name="responsivescenariosubheading"]:not(:checked)').each(function () {
+        var unselectedresponsivechildscenario = $(this).val();
+        unselectedresponsivescenarionamearray.push(unselectedresponsivechildscenario);
+    });
+
+    // delete all existing dynamic filter applied bttons
+    $.each(selectedresponsivescenarionamearray, function (index, value) {
+        var selectedresponsivefilterscenario = value;
+
+        // find the heading scenario value, which is useful in deleting the existing scenario buttons
+        if (value.indexOf(":")) {
+            var valuearray = value.split(":");
+            var headingscenariobtnidstartswith = valuearray[0].replace(/[^A-Z0-9]/ig, "");
+        } else {
+            var headingscenariobtnidstartswith = value.replace(/[^A-Z0-9]/ig, "");
+        }
+
+        // delete sublevel scenario buttons when heading level senario is applied
+        DeleteExistingResponsiveScenarioFilterButtons(GlobalScenarioFilterNameContsant + headingscenariobtnidstartswith);
+    });
+
+    // delete all unselected dynamic filter applied bttons
+    $.each(unselectedresponsivescenarionamearray, function (index, value) {
+        var selectedresponsivefilterscenario = value;
+
+        // find the heading scenario value, which is useful in deleting the existing scenario buttons
+        if (value.indexOf(":")) {
+            var valuearray = value.split(":");
+            var headingscenariobtnidstartswith = valuearray[0].replace(/[^A-Z0-9]/ig, "");
+        } else {
+            var headingscenariobtnidstartswith = value.replace(/[^A-Z0-9]/ig, "");
+        }
+
+        // delete sublevel scenario buttons when heading level senario is applied
+        DeleteExistingResponsiveScenarioFilterButtons(GlobalScenarioFilterNameContsant + headingscenariobtnidstartswith);
+    });
+
+    // create dynamic filer applied buttons
+    $.each(selectedresponsivescenarionamearray, function (index, value) {
+        var selectedresponsivefilterscenario = value;
+        var selectedresponsivefilterscenariobtnid = (GlobalScenarioFilterNameContsant + selectedresponsivefilterscenario).replace(/[^A-Z0-9]/ig, "") + "FilterApplied";
+        if ($("#" + selectedresponsivefilterscenariobtnid).length == 0) {
+            CreateDyanmicAppliedFilterButtons(selectedresponsivefilterscenario, selectedresponsivefilterscenariobtnid);
+
+            // check if the remove applied filter is already applied during the page load for this selected value.
+            // if already applied skip this remove functionality or else apply it
+            var isremovealreadyexists = false;
+            $.each(ScenarioArrayForDefaultRemoveFilterAppliedFromURL, function (defaulturlindex, defaulturlvalue) {
+                if (defaulturlvalue == selectedresponsivefilterscenario) {
+                    isremovealreadyexists = true;
+                    return false;
+                }
+            });
+            if (!isremovealreadyexists) {
+                if (ScenarioArrayForSelectedFilterValues.length === 0) {
+                    RemoveAppliedResponsiveFilters(GlobalScenarioFilterNameContsant, selectedresponsivefilterscenario, selectedresponsivefilterscenariobtnid, null);
+                    ScenarioArrayForSelectedFilterValues.push(selectedresponsivefilterscenario);
+                } else {
+                    var isremovefilteralreadyranforthisfiltervalue = false;
+                    $.each(ScenarioArrayForSelectedFilterValues, function (selectedfiltervalueindex, selectedfiltervalue) {
+                        if (selectedresponsivefilterscenario === selectedfiltervalue) {
+                            isremovefilteralreadyranforthisfiltervalue = true;
+                            return false;
+                        }
+                    });
+                    if (!isremovefilteralreadyranforthisfiltervalue) {
+                        RemoveAppliedResponsiveFilters(GlobalScenarioFilterNameContsant, selectedresponsivefilterscenario, selectedresponsivefilterscenariobtnid, null);
+                        ScenarioArrayForSelectedFilterValues.push(selectedresponsivefilterscenario);
+                    }
+                }
+            }
+        };
+    });
+}
+
+function ApplyProductResponsiveFilter() {
+    if (selectedresponsiveproductarray.length > 0) {
+        selectedresponsiveproductarray.length = 0;
+    }
+    if (unselectedresponsiveproductarray.length > 0) {
+        unselectedresponsiveproductarray.length = 0;
+    }
+    $('input[name="productresponsivefilter"]:checked').each(function () {
+        var selectedresponsivefilterproduct = $(this).val();
+        var filterButtonText = $(this).siblings("span.sidebar-item-name").text()
+        var selectedresponsivefilterproductbtnid = (GlobalProductFilterNameContsant + selectedresponsivefilterproduct).replace(/[^A-Z0-9]/ig, "") + "FilterApplied";
+        if ($("#" + selectedresponsivefilterproductbtnid).length == 0) {
+            CreateDyanmicAppliedFilterButtons(filterButtonText, selectedresponsivefilterproductbtnid);
+
+            // check if the remove applied filter is already applied during the page load for this selected value.
+            // if already applied skip this remove functionality or else apply it
+            var isremovealreadyexists = false;
+            $.each(ProductArrayForDefaultRemoveFilterAppliedFromURL, function (index, value) {
+                if (value == selectedresponsivefilterproduct) {
+                    isremovealreadyexists = true;
+                    return false;
+                }
+            });
+            if (!isremovealreadyexists) {
+                if (ProductArrayForSelectedFilterValues.length === 0) {
+                    RemoveAppliedResponsiveFilters(GlobalProductFilterNameContsant, selectedresponsivefilterproduct, selectedresponsivefilterproductbtnid, null);
+                    ProductArrayForSelectedFilterValues.push(selectedresponsivefilterproduct);
+                } else {
+                    var isremovefilteralreadyranforthisfiltervalue = false;
+                    $.each(ProductArrayForSelectedFilterValues, function (selectedfiltervalueindex, selectedfiltervalue) {
+                        if (selectedresponsivefilterproduct === selectedfiltervalue) {
+                            isremovefilteralreadyranforthisfiltervalue = true;
+                            return false;
+                        }
+                    });
+                    if (!isremovefilteralreadyranforthisfiltervalue) {
+                        RemoveAppliedResponsiveFilters(GlobalProductFilterNameContsant, selectedresponsivefilterproduct, selectedresponsivefilterproductbtnid, null);
+                        ProductArrayForSelectedFilterValues.push(selectedresponsivefilterproduct);
+                    }
+                }
+            }
+        };
+        selectedresponsiveproductarray.push(selectedresponsivefilterproduct);
+    });
+    $('input[name="productresponsivefilter"]:not(:checked)').each(function () {
+        var unselectedresponsivefilterproduct = $(this).val();
+        var unselectedresponsivefilterproductbtnid = (GlobalProductFilterNameContsant + unselectedresponsivefilterproduct).replace(/[^A-Z0-9]/ig, "") + "FilterApplied";
+        if ($("#" + unselectedresponsivefilterproductbtnid).length > 0) {
+            $("#" + unselectedresponsivefilterproductbtnid).remove();
+        };
+        unselectedresponsiveproductarray.push(unselectedresponsivefilterproduct);
+    });
+}
+
+function ApplyRoleResponsiveFilter() {
+    if (selectedresponsiverolearray.length > 0) {
+        selectedresponsiverolearray.length = 0;
+    }
+    if (unselectedresponsiverolearray.length > 0) {
+        unselectedresponsiverolearray.length = 0;
+    }
+    $('input[name="roleresponsivefilter"]:checked').each(function () {
+        var selectedresponsivefilterrole = $(this).val();
+        var filterButtonText = $(this).siblings("span.sidebar-item-name").text()
+        var selectedresponsivefilterrolebtnid = (GlobalRoleFilterNameContsant + selectedresponsivefilterrole).replace(/[^A-Z0-9]/ig, "") + "FilterApplied";
+        if ($("#" + selectedresponsivefilterrolebtnid).length == 0) {
+            CreateDyanmicAppliedFilterButtons(filterButtonText, selectedresponsivefilterrolebtnid);
+
+            // check if the remove applied filter is already applied during the page load for this selected value.
+            // if already applied skip this remove functionality or else apply it
+            var isremovealreadyexists = false;
+            $.each(RoleArrayForDefaultRemoveFilterAppliedFromURL, function (index, value) {
+                if (value == selectedresponsivefilterrole) {
+                    isremovealreadyexists = true;
+                    return false;
+                }
+            });
+            if (!isremovealreadyexists) {
+                if (RoleArrayForSelectedFilterValues.length === 0) {
+                    RemoveAppliedResponsiveFilters(GlobalRoleFilterNameContsant , selectedresponsivefilterrole, selectedresponsivefilterrolebtnid, null);
+                    RoleArrayForSelectedFilterValues.push(selectedresponsivefilterrole);
+                } else {
+                    var isremovefilteralreadyranforthisfiltervalue = false;
+                    $.each(RoleArrayForSelectedFilterValues, function (selectedfiltervalueindex, selectedfiltervalue) {
+                        if (selectedresponsivefilterrole === selectedfiltervalue) {
+                            isremovefilteralreadyranforthisfiltervalue = true;
+                            return false;
+                        }
+                    });
+                    if (!isremovefilteralreadyranforthisfiltervalue) {
+                        RemoveAppliedResponsiveFilters(GlobalRoleFilterNameContsant , selectedresponsivefilterrole, selectedresponsivefilterrolebtnid, null);
+                        RoleArrayForSelectedFilterValues.push(selectedresponsivefilterrole);
+                    }
+                }
+            }
+        };
+        selectedresponsiverolearray.push(selectedresponsivefilterrole);
+    });
+    $('input[name="roleresponsivefilter"]:not(:checked)').each(function () {
+        var unselectedresponsivefilterrole = $(this).val();
+        var unselectedresponsivefilterrolebtnid = (GlobalRoleFilterNameContsant + unselectedresponsivefilterrole).replace(/[^A-Z0-9]/ig, "") + "FilterApplied";
+        if ($("#" + unselectedresponsivefilterrolebtnid).length > 0) {
+            $("#" + unselectedresponsivefilterrolebtnid).remove();
+        };
+        unselectedresponsiverolearray.push(unselectedresponsivefilterrole);
+    });
+}
+
+function ApplyIndustryResponsiveFilter() {
+    if (selectedresponsiveindustryarray.length > 0) {
+        selectedresponsiveindustryarray.length = 0;
+    }
+    if (unselectedresponsiveindustryarray.length > 0) {
+        unselectedresponsiveindustryarray.length = 0;
+    }
+    $('input[name="industryresponsivefilter"]:checked').each(function () {
+        var selectedresponsivefilterindustry = $(this).val();
+        var filterButtonText = $(this).siblings("span.sidebar-item-name").text()
+        var selectedresponsivefilterindustrybtnid = (GlobalIndustryFilterNameContsant + selectedresponsivefilterindustry).replace(/[^A-Z0-9]/ig, "") + "FilterApplied";
+        if ($("#" + selectedresponsivefilterindustrybtnid).length == 0) {
+            CreateDyanmicAppliedFilterButtons(filterButtonText, selectedresponsivefilterindustrybtnid);
+
+            // check if the remove applied filter is already applied during the page load for this selected value.
+            // if already applied skip this remove functionality or else apply it
+            var isremovealreadyexists = false;
+            $.each(IndustryArrayForDefaultRemoveFilterAppliedFromURL, function (index, value) {
+                if (value == selectedresponsivefilterindustry) {
+                    isremovealreadyexists = true;
+                    return false;
+                }
+            });
+            if (!isremovealreadyexists) {
+                if (IndustryArrayForSelectedFilterValues.length === 0) {
+                    RemoveAppliedResponsiveFilters(GlobalIndustryFilterNameContsant, selectedresponsivefilterindustry, selectedresponsivefilterindustrybtnid, null);
+                    IndustryArrayForSelectedFilterValues.push(selectedresponsivefilterindustry);
+                } else {
+                    var isremovefilteralreadyranforthisfiltervalue = false;
+                    $.each(IndustryArrayForSelectedFilterValues, function (selectedfiltervalueindex, selectedfiltervalue) {
+                        if (selectedresponsivefilterindustry === selectedfiltervalue) {
+                            isremovefilteralreadyranforthisfiltervalue = true;
+                            return false;
+                        }
+                    });
+                    if (!isremovefilteralreadyranforthisfiltervalue) {
+                        RemoveAppliedResponsiveFilters(GlobalIndustryFilterNameContsant, selectedresponsivefilterindustry, selectedresponsivefilterindustrybtnid, null);
+                        IndustryArrayForSelectedFilterValues.push(selectedresponsivefilterindustry);
+                    }
+                }
+            }
+        };
+        selectedresponsiveindustryarray.push(selectedresponsivefilterindustry);
+    });
+    $('input[name="industryresponsivefilter"]:not(:checked)').each(function () {
+        var unselectedresponsivefilterindustry = $(this).val();
+        var unselectedresponsivefilterindustrybtnid = (GlobalIndustryFilterNameContsant + unselectedresponsivefilterindustry).replace(/[^A-Z0-9]/ig, "") + "FilterApplied";
+        if ($("#" + unselectedresponsivefilterindustrybtnid).length > 0) {
+            $("#" + unselectedresponsivefilterindustrybtnid).remove();
+        };
+        unselectedresponsiveindustryarray.push(unselectedresponsivefilterindustry);
+    });
+}
+
+// hide unselected languges when any languge is selcted in mobile version
+$('input[name="languageresponsivepreference"]').on('click', function () {
+    if ($(this).is(":checked")) {
+        // show responsive clear all preferences button
+        $('#ClearAllResponsivePreferences').show();
+        // show clear event languge button
+        $('#ClearEventLanguageResponsivePreference').show();
+    } else {
+        // hide clear event languge button
+        $('#ClearEventLanguageResponsivePreference').hide();
+        // hide responsive clear all preferences button if no prefernce refiner is added to events
+        if ($('input[name="languageresponsivepreference"]:checked').length == 0 && $('input[name="deliverylanguageresponsivepreference"]:checked').length == 0 && $('input[name="subtitlelanguageresponsivepreference"]:checked').length == 0 && $("#EventStartTimeResponsiveFilterItem").val().toLowerCase() === "12:00 am" &&
+            $("#EventEndTimeResponsiveFilterItem").val().toLowerCase() === "11:59 pm" && $('input[name="eventformatresponsivepreference"]:checked').length == 0
+            && $.trim($("#ResponsiveEventsLocations").val()) === '' && $('#ResponsiveSwitchEventTimeZoneToUserLocale:checked').length == 0) {
+            $('#ClearAllResponsivePreferences').hide();
+        }
+    }
+});
+
+// hide unselected delivery languges when any languge is selcted in mobile version
+$('input[name="deliverylanguageresponsivepreference"]').on('click', function () {
+    if ($(this).is(":checked")) {
+        // show responsive clear all preferences button
+        $('#ClearAllResponsivePreferences').show();
+        // show clear event languge button
+        $('#ClearEventdeliveryLanguageResponsivePreference').show();
+    } else {
+        // hide clear event languge button
+        $('#ClearEventdeliveryLanguageResponsivePreference').hide();
+        // hide responsive clear all preferences button if no prefernce refiner is added to events
+        if ($('input[name="languageresponsivepreference"]:checked').length == 0 && $('input[name="deliverylanguageresponsivepreference"]:checked').length == 0 && $('input[name="subtitlelanguageresponsivepreference"]:checked').length == 0 && $("#EventStartTimeResponsiveFilterItem").val().toLowerCase() === "12:00 am" &&
+            $("#EventEndTimeResponsiveFilterItem").val().toLowerCase() === "11:59 pm" && $('input[name="eventformatresponsivepreference"]:checked').length == 0
+            && $.trim($("#ResponsiveEventsLocations").val()) === '' && $('#ResponsiveSwitchEventTimeZoneToUserLocale:checked').length == 0) {
+            $('#ClearAllResponsivePreferences').hide();
+        }
+    }
+});
+
+// hide unselected subtitle languges when any languge is selcted in mobile version
+$('input[name="subtitlelanguageresponsivepreference"]').on('click', function () {
+    if ($(this).is(":checked")) {
+        // show responsive clear all preferences button
+        $('#ClearAllResponsivePreferences').show();
+        // show clear event languge button
+        $('#ClearEventsubtitleLanguageResponsivePreference').show();
+    } else {
+        // hide clear event languge button
+        $('#ClearEventsubtitleLanguageResponsivePreference').hide();
+        // hide responsive clear all preferences button if no prefernce refiner is added to events
+        if ($('input[name="languageresponsivepreference"]:checked').length == 0 && $('input[name="deliverylanguageresponsivepreference"]:checked').length == 0 && $('input[name="subtitlelanguageresponsivepreference"]:checked').length == 0 && $("#EventStartTimeResponsiveFilterItem").val().toLowerCase() === "12:00 am" &&
+            $("#EventEndTimeResponsiveFilterItem").val().toLowerCase() === "11:59 pm" && $('input[name="eventformatresponsivepreference"]:checked').length == 0
+            && $.trim($("#ResponsiveEventsLocations").val()) === '' && $('#ResponsiveSwitchEventTimeZoneToUserLocale:checked').length == 0) {
+            $('#ClearAllResponsivePreferences').hide();
+        }
+    }
+});
+
+$('input[name="eventformatresponsivepreference"]').on('click', function () {
+    if ($(this).is(":checked")) {
+        // show responsive clear all preferences button
+        $('#ClearAllResponsivePreferences').show();
+    } else {
+        // hide responsive clear all preferences button if no prefernce refiner is added to events
+        if ($('input[name="languageresponsivepreference"]:checked').length == 0 && $('input[name="deliverylanguageresponsivepreference"]:checked').length == 0 && $('input[name="subtitlelanguageresponsivepreference"]:checked').length == 0 && $("#EventStartTimeResponsiveFilterItem").val().toLowerCase() === "12:00 am" &&
+            $("#EventEndTimeResponsiveFilterItem").val().toLowerCase() === "11:59 pm" && $('input[name="eventformatresponsivepreference"]:checked').length == 0
+            && $.trim($("#ResponsiveEventsLocations").val()) === '' && $('#ResponsiveSwitchEventTimeZoneToUserLocale:checked').length == 0) {
+            $('#ClearAllResponsivePreferences').hide();
+        }
+    }
+});
+
+$("#ResponsiveSwitchEventTimeZoneToUserLocale").on('click', function () {
+    if ($(this).is(":checked")) {
+        // show responsive clear all preferences button
+        $('#ClearAllResponsivePreferences').show();
+    } else {
+        // hide responsive clear all preferences button if no prefernce refiner is added to events
+        if ($('input[name="languageresponsivepreference"]:checked').length == 0 && $('input[name="subtitlelanguageresponsivepreference"]:checked').length == 0 && $("#EventStartTimeResponsiveFilterItem").val().toLowerCase() === "12:00 am" &&
+            $("#EventEndTimeResponsiveFilterItem").val().toLowerCase() === "11:59 pm" && $('input[name="eventformatresponsivepreference"]:checked').length == 0 &&
+            $.trim($("#ResponsiveEventsLocations").val()) === '' && $('#ResponsiveSwitchEventTimeZoneToUserLocale:checked').length == 0) {
+            $('#ClearAllResponsivePreferences').hide();
+        }
+    }
+});
+
+$('input[name="productresponsivefilter"]').on('click', function () {
+    if ($(this).is(":checked")) {
+        // show responsive clear product filters button
+        $('#ClearProductResponsivefilter').show();
+
+        // show responsive clear all preferences button
+        $('#ClearAllResponsiveFilters').show();
+    } else {
+        // hide responsive clear product filters button if no filters are applied
+        if ($('input[name="productresponsivefilter"]:checked').length == 0) {
+            $('#ClearProductResponsivefilter').hide();
+        }
+
+        // hide responsive clear all button if no product filter is selected
+        if ($('input[name="responsivescenarioheading"]:checked').length == 0 && $('input[name="responsivescenariosubheading"]:checked').length == 0 && $('input[name="productresponsivefilter"]:checked').length == 0 &&
+            $('input[name="roleresponsivefilter"]:checked').length == 0 && $('input[name="industryresponsivefilter"]:checked').length == 0 && $("#FavDataSpanResponsive").text() === "0") {
+            $('#ClearAllResponsiveFilters').hide();
+        }
+    }
+});
+
+$('input[name="roleresponsivefilter"]').on('click', function () {
+    if ($(this).is(":checked")) {
+        // show responsive clear all preferences button
+        $('#ClearAllResponsiveFilters').show();
+    } else {
+        // hide responsive clear all button if no product filter is selected
+        if ($('input[name="responsivescenarioheading"]:checked').length == 0 && $('input[name="responsivescenariosubheading"]:checked').length == 0 && $('input[name="productresponsivefilter"]:checked').length == 0 &&
+            $('input[name="roleresponsivefilter"]:checked').length == 0 && $('input[name="industryresponsivefilter"]:checked').length == 0 && $("#FavDataSpanResponsive").text() === "0") {
+            $('#ClearAllResponsiveFilters').hide();
+        }
+    }
+});
+
+$('input[name="industryresponsivefilter"]').on('click', function () {
+    if ($(this).is(":checked")) {
+        // show responsive clear all preferences button
+        $('#ClearAllResponsiveFilters').show();
+    } else {
+        // hide responsive clear all button if no product filter is selected
+        if ($('input[name="responsivescenarioheading"]:checked').length == 0 && $('input[name="responsivescenariosubheading"]:checked').length == 0 && $('input[name="productresponsivefilter"]:checked').length == 0 &&
+            $('input[name="roleresponsivefilter"]:checked').length == 0 && $('input[name="industryresponsivefilter"]:checked').length == 0 && $("#FavDataSpanResponsive").text() === "0") {
+            $('#ClearAllResponsiveFilters').hide();
+        }
+    }
+});
+
+function ApplyLanguageResponsivePreference() {
+    if (selectedresponsivelanguagearray.length > 0) {
+        selectedresponsivelanguagearray.length = 0;
+    }
+    if (unselectedresponsivelanguagearray.length > 0) {
+        unselectedresponsivelanguagearray.length = 0;
+    }
+    $('input[name="languageresponsivepreference"]:checked').each(function () {
+        var selectedresponsivepreferencelanguage = $(this).val();
+        var selectedresponsivepreferencelanguagebtnid = GlobalLangugeFilterNameContsant + selectedresponsivepreferencelanguage.replace(/[0-9`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '').replace(/ /g, '') + "PreferenceApplied";
+        if ($("#" + selectedresponsivepreferencelanguagebtnid).length == 0) {
+            CreateDyanmicAppliedFilterButtons(selectedresponsivepreferencelanguage, selectedresponsivepreferencelanguagebtnid);
+
+            // check if the remove applied filter is already applied during the page load for this selected value.
+            // if already applied skip this remove functionality or else apply it
+            var isremovealreadyexists = false;
+            $.each(LanguageArrayForDefaultRemoveFilterAppliedFromURL, function (index, value) {
+                if (value == selectedresponsivepreferencelanguage) {
+                    isremovealreadyexists = true;
+                    return false;
+                }
+            });
+            if (!isremovealreadyexists) {
+                if (LanguageArrayForSelectedFilterValues.length === 0) {
+                    RemoveAppliedResponsiveFilters(GlobalLangugeFilterNameContsant, selectedresponsivepreferencelanguage, selectedresponsivepreferencelanguagebtnid, LanguageFilterQueryLocalStorageKey);
+                    LanguageArrayForSelectedFilterValues.push(selectedresponsivepreferencelanguage);
+                } else {
+                    var isremovefilteralreadyranforthisfiltervalue = false;
+                    $.each(LanguageArrayForSelectedFilterValues, function (selectedfiltervalueindex, selectedfiltervalue) {
+                        if (selectedresponsivepreferencelanguage === selectedfiltervalue) {
+                            isremovefilteralreadyranforthisfiltervalue = true;
+                            return false;
+                        }
+                    });
+                    if (!isremovefilteralreadyranforthisfiltervalue) {
+                        RemoveAppliedResponsiveFilters(GlobalLangugeFilterNameContsant, selectedresponsivepreferencelanguage, selectedresponsivepreferencelanguagebtnid, LanguageFilterQueryLocalStorageKey);
+                        LanguageArrayForSelectedFilterValues.push(selectedresponsivepreferencelanguage);
+                    }
+                }
+            }
+        };
+        selectedresponsivelanguagearray.push(selectedresponsivepreferencelanguage);
+
+        // add selected value into local storage
+        var lsquerystring = GlobalLangugeFilterNameContsant + "=" + selectedresponsivepreferencelanguage.replace(/\%26/g, "&");
+        AddFilterQueryToLocalStorage(LanguageFilterQueryLocalStorageKey, lsquerystring);
+    });
+    $('input[name="languageresponsivepreference"]:not(:checked)').each(function () {
+        var unselectedresponsivepreferencelanguage = $(this).val();
+        var unselectedresponsivepreferencelanguagebtnid = GlobalLangugeFilterNameContsant + unselectedresponsivepreferencelanguage.replace(/[0-9`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '').replace(/ /g, '') + "PreferenceApplied";
+        if ($("#" + unselectedresponsivepreferencelanguagebtnid).length > 0) {
+            $("#" + unselectedresponsivepreferencelanguagebtnid).remove();
+        };
+        unselectedresponsivelanguagearray.push(unselectedresponsivepreferencelanguage);
+
+        // delete selected value from loal storage
+        var lsquerystring = GlobalLangugeFilterNameContsant + "=" + unselectedresponsivepreferencelanguage.replace(/\%26/g, "&");
+        DeleteFilterQueryFromLocalStorage(LanguageFilterQueryLocalStorageKey, lsquerystring);
+    });
+}
+
+function ApplydeliveryLanguageResponsivePreference() {
+    if (selectedresponsivedeliverylanguagearray.length > 0) {
+        selectedresponsivedeliverylanguagearray.length = 0;
+    }
+    if (unselectedresponsivedeliverylanguagearray.length > 0) {
+        unselectedresponsivedeliverylanguagearray.length = 0;
+    }
+    $('input[name="deliverylanguageresponsivepreference"]:checked').each(function () {
+        var selectedresponsivepreferencedeliverylanguage = $(this).val();
+        var selectedresponsivepreferencedeliverylanguagebtnid = GlobaldeliveryLangugeFilterNameContsant + selectedresponsivepreferencedeliverylanguage.replace(/[0-9`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '').replace(/ /g, '') + "PreferenceApplied";
+        if ($("#" + selectedresponsivepreferencedeliverylanguagebtnid).length == 0) {
+            CreateDyanmicAppliedFilterButtons(selectedresponsivepreferencedeliverylanguage, selectedresponsivepreferencedeliverylanguagebtnid);
+
+            // check if the remove applied filter is already applied during the page load for this selected value.
+            // if already applied skip this remove functionality or else apply it
+            var isremovealreadyexists = false;
+            $.each(deliveryLanguageArrayForDefaultRemoveFilterAppliedFromURL, function (index, value) {
+                if (value == selectedresponsivepreferencedeliverylanguage) {
+                    isremovealreadyexists = true;
+                    return false;
+                }
+            });
+            if (!isremovealreadyexists) {
+                if (deliveryLanguageArrayForSelectedFilterValues.length === 0) {
+                    RemoveAppliedResponsiveFilters(GlobaldeliveryLangugeFilterNameContsant, selectedresponsivepreferencedeliverylanguage, selectedresponsivepreferencedeliverylanguagebtnid, deliveryLanguageFilterQueryLocalStorageKey);
+                    deliveryLanguageArrayForSelectedFilterValues.push(selectedresponsivepreferencedeliverydeliverylanguage);
+                } else {
+                    var isremovefilteralreadyranforthisfiltervalue = false;
+                    $.each(deliveryLanguageArrayForSelectedFilterValues, function (selectedfiltervalueindex, selectedfiltervalue) {
+                        if (selectedresponsivepreferencedeliverylanguage === selectedfiltervalue) {
+                            isremovefilteralreadyranforthisfiltervalue = true;
+                            return false;
+                        }
+                    });
+                    if (!isremovefilteralreadyranforthisfiltervalue) {
+                        RemoveAppliedResponsiveFilters(GlobaldeliveryLangugeFilterNameContsant, selectedresponsivepreferencedeliverylanguage, selectedresponsivepreferencedeliverylanguagebtnid, deliveryLanguageFilterQueryLocalStorageKey);
+                        deliveryLanguageArrayForSelectedFilterValues.push(selectedresponsivepreferencedeliverylanguage);
+                    }
+                }
+            }
+        };
+        selectedresponsivedeliverylanguagearray.push(selectedresponsivepreferencedeliverylanguage);
+
+        // add selected value into local storage
+        var deliverylsquerystring = GlobaldeliveryLangugeFilterNameContsant + "=" + selectedresponsivepreferencedeliverylanguage.replace(/\%26/g, "&");
+        AddFilterQueryToLocalStorage(deliveryLanguageFilterQueryLocalStorageKey, deliverylsquerystring);
+    });
+    $('input[name="deliverylanguageresponsivepreference"]:not(:checked)').each(function () {
+        var unselectedresponsivepreferencedeliverylanguage = $(this).val();
+        var unselectedresponsivepreferencedeliverylanguagebtnid = GlobaldeliveryLangugeFilterNameContsant + unselectedresponsivepreferencedeliverylanguage.replace(/[0-9`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '').replace(/ /g, '') + "PreferenceApplied";
+        if ($("#" + unselectedresponsivepreferencedeliverylanguagebtnid).length > 0) {
+            $("#" + unselectedresponsivepreferencedeliverylanguagebtnid).remove();
+        };
+        unselectedresponsivedeliverylanguagearray.push(unselectedresponsivepreferencedeliverylanguage);
+
+        // delete selected value from loal storage
+        var deliverylsquerystring = GlobaldeliveryLangugeFilterNameContsant + "=" + unselectedresponsivepreferencedeliverylanguage.replace(/\%26/g, "&");
+        DeleteFilterQueryFromLocalStorage(deliveryLanguageFilterQueryLocalStorageKey, deliverylsquerystring);
+    });
+}
+function ApplysubtitleLanguageResponsivePreference() {
+    if (selectedresponsivesubtitlelanguagearray.length > 0) {
+        selectedresponsivesubtitlelanguagearray.length = 0;
+    }
+    if (unselectedresponsivesubtitlelanguagearray.length > 0) {
+        unselectedresponsivesubtitlelanguagearray.length = 0;
+    }
+    $('input[name="subtitlelanguageresponsivepreference"]:checked').each(function () {
+        var selectedresponsivepreferencesubtitlelanguage = $(this).val();
+        var selectedresponsivepreferencesubtitlelanguagebtnid = GlobalsubtitleLangugeFilterNameContsant + selectedresponsivepreferencesubtitlelanguage.replace(/[0-9`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '').replace(/ /g, '') + "PreferenceApplied";
+        if ($("#" + selectedresponsivepreferencesubtitlelanguagebtnid).length == 0) {
+            CreateDyanmicAppliedFilterButtons(selectedresponsivepreferencesubtitlelanguage, selectedresponsivepreferencesubtitlelanguagebtnid);
+
+            // check if the remove applied filter is already applied during the page load for this selected value.
+            // if already applied skip this remove functionality or else apply it
+            var isremovealreadyexists = false;
+            $.each(subtitleLanguageArrayForDefaultRemoveFilterAppliedFromURL, function (index, value) {
+                if (value == selectedresponsivepreferencesubtitlelanguage) {
+                    isremovealreadyexists = true;
+                    return false;
+                }
+            });
+            if (!isremovealreadyexists) {
+                if (subtitleLanguageArrayForSelectedFilterValues.length === 0) {
+                    RemoveAppliedResponsiveFilters(GlobalsubtitleLangugeFilterNameContsant, selectedresponsivepreferencesubtitlelanguage, selectedresponsivepreferencesubtitlelanguagebtnid, subtitleLanguageFilterQueryLocalStorageKey);
+                    subtitleLanguageArrayForSelectedFilterValues.push(selectedresponsivepreferencesubtitlesubtitlelanguage);
+                } else {
+                    var isremovefilteralreadyranforthisfiltervalue = false;
+                    $.each(subtitleLanguageArrayForSelectedFilterValues, function (selectedfiltervalueindex, selectedfiltervalue) {
+                        if (selectedresponsivepreferencesubtitlelanguage === selectedfiltervalue) {
+                            isremovefilteralreadyranforthisfiltervalue = true;
+                            return false;
+                        }
+                    });
+                    if (!isremovefilteralreadyranforthisfiltervalue) {
+                        RemoveAppliedResponsiveFilters(GlobalsubtitleLangugeFilterNameContsant, selectedresponsivepreferencesubtitlelanguage, selectedresponsivepreferencesubtitlelanguagebtnid, subtitleLanguageFilterQueryLocalStorageKey);
+                        subtitleLanguageArrayForSelectedFilterValues.push(selectedresponsivepreferencesubtitlelanguage);
+                    }
+                }
+            }
+        };
+        selectedresponsivesubtitlelanguagearray.push(selectedresponsivepreferencesubtitlelanguage);
+
+        // add selected value into local storage
+        var subtitlelsquerystring = GlobalsubtitleLangugeFilterNameContsant + "=" + selectedresponsivepreferencesubtitlelanguage.replace(/\%26/g, "&");
+        AddFilterQueryToLocalStorage(subtitleLanguageFilterQueryLocalStorageKey, subtitlelsquerystring);
+    });
+    $('input[name="subtitlelanguageresponsivepreference"]:not(:checked)').each(function () {
+        var unselectedresponsivepreferencesubtitlelanguage = $(this).val();
+        var unselectedresponsivepreferencesubtitlelanguagebtnid = GlobalsubtitleLangugeFilterNameContsant + unselectedresponsivepreferencesubtitlelanguage.replace(/[0-9`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '').replace(/ /g, '') + "PreferenceApplied";
+        if ($("#" + unselectedresponsivepreferencesubtitlelanguagebtnid).length > 0) {
+            $("#" + unselectedresponsivepreferencesubtitlelanguagebtnid).remove();
+        };
+        unselectedresponsivesubtitlelanguagearray.push(unselectedresponsivepreferencesubtitlelanguage);
+
+        // delete selected value from loal storage
+        var subtitlelsquerystring = GlobalsubtitleLangugeFilterNameContsant + "=" + unselectedresponsivepreferencesubtitlelanguage.replace(/\%26/g, "&");
+        DeleteFilterQueryFromLocalStorage(subtitleLanguageFilterQueryLocalStorageKey, subtitlelsquerystring);
+    });
+}
+
+function ApplyEventFormatResponsivePreference() {    
+    if (selectedresponsiveformatarray.length > 0) {
+        selectedresponsiveformatarray.length = 0;
+    }
+    if (unselectedresponsiveformatarray.length > 0) {
+        unselectedresponsiveformatarray.length = 0;
+    }
+    $('input[name="eventformatresponsivepreference"]:checked').each(function () {
+        var selectedresponsivepreferenceformat = $(this).val();
+        var filterButtonText = $(this).siblings("span.sidebar-item-name").text()
+        var selectedresponsivepreferenceformatbtnid = (GlobalFormatFilterNameContsant + selectedresponsivepreferenceformat).replace(/[^A-Z0-9]/ig, "") + "PreferenceApplied";
+        if ($("#" + selectedresponsivepreferenceformatbtnid).length == 0) {
+            CreateDyanmicAppliedFilterButtons(filterButtonText, selectedresponsivepreferenceformatbtnid);
+
+            // check if the remove applied filter is already applied during the page load for this selected value.
+            // if already applied skip this remove functionality or else apply it
+            var isremovealreadyexists = false;
+            $.each(FormatArrayForDefaultRemoveFilterAppliedFromURL, function (index, value) {
+                if (value == selectedresponsivepreferenceformat) {
+                    isremovealreadyexists = true;
+                    return false;
+                }
+            });
+            if (!isremovealreadyexists) {
+                if (FormatArrayForSelectedFilterValues.length === 0) {
+                    RemoveAppliedResponsiveFilters(GlobalFormatFilterNameContsant, selectedresponsivepreferenceformat, selectedresponsivepreferenceformatbtnid, EventFormatFilterQueryLocalStorageKey);
+                    FormatArrayForSelectedFilterValues.push(selectedresponsivepreferenceformat);
+                } else {
+                    var isremovefilteralreadyranforthisfiltervalue = false;
+                    $.each(FormatArrayForSelectedFilterValues, function (selectedfiltervalueindex, selectedfiltervalue) {
+                        if (selectedresponsivepreferenceformat === selectedfiltervalue) {
+                            isremovefilteralreadyranforthisfiltervalue = true;
+                            return false;
+                        }
+                    });
+                    if (!isremovefilteralreadyranforthisfiltervalue) {
+                        RemoveAppliedResponsiveFilters(GlobalFormatFilterNameContsant, selectedresponsivepreferenceformat, selectedresponsivepreferenceformatbtnid, EventFormatFilterQueryLocalStorageKey);
+                        FormatArrayForSelectedFilterValues.push(selectedresponsivepreferenceformat);
+                    }
+                }
+            }
+        };
+        selectedresponsiveformatarray.push(selectedresponsivepreferenceformat);
+
+        // add selected value into local storage
+        var lsquerystring = GlobalFormatFilterNameContsant + "=" + selectedresponsivepreferenceformat.replace(/\%26/g, "&");
+        AddFilterQueryToLocalStorage(EventFormatFilterQueryLocalStorageKey, lsquerystring);
+    });
+    $('input[name="eventformatresponsivepreference"]:not(:checked)').each(function () {
+        var unselectedresponsivepreferenceformat = $(this).val();
+        var unselectedresponsivepreferenceformatbtnid = (GlobalFormatFilterNameContsant + unselectedresponsivepreferenceformat).replace(/[^A-Z0-9]/ig, "") + "PreferenceApplied";
+        if ($("#" + unselectedresponsivepreferenceformatbtnid).length > 0) {
+            $("#" + unselectedresponsivepreferenceformatbtnid).remove();
+        };
+        unselectedresponsiveformatarray.push(unselectedresponsivepreferenceformat);
+
+        // delete selected value from loal storage
+        var lsquerystring = GlobalFormatFilterNameContsant + "=" + unselectedresponsivepreferenceformat.replace(/\%26/g, "&");
+        DeleteFilterQueryFromLocalStorage(EventFormatFilterQueryLocalStorageKey, lsquerystring);
+    });
+}
+
+function ApplyEventResponsiveSwitchTimeZonePreference() {
+    if (selectedresponsiveswitchtimezonearray.length > 0) {
+        selectedresponsiveswitchtimezonearray.length = 0;
+    }
+    if (unselectedresponsiveswitchtimezonearray.length > 0) {
+        unselectedresponsiveswitchtimezonearray.length = 0;
+    }
+    $('#ResponsiveSwitchEventTimeZoneToUserLocale:checked').each(function () {
+        isShowInLocalTimeFilterApplied = true;
+        var selectedresponsivepreferenceswitchtimezone = GetBrowserLocationTimeZone();
+        var selectedresponsivepreferenceswitchtimezonetbtnid = (GlobalSwitchTimeZoneFilterNameContsant + selectedresponsivepreferenceswitchtimezone).replace(/[^A-Z0-9]/ig, "") + "PreferenceApplied";
+        if ($("#" + selectedresponsivepreferenceswitchtimezonetbtnid).length == 0) {
+            // check if the remove applied filter is already applied during the page load for this selected value.
+            // if already applied skip this remove functionality or else apply it
+            var isremovealreadyexists = false;
+            $.each(FormatArrayForDefaultRemoveFilterAppliedFromURL, function (index, value) {
+                if (value == selectedresponsivepreferenceswitchtimezone) {
+                    isremovealreadyexists = true;
+                    return false;
+                }
+            });
+            if (!isremovealreadyexists) {
+                if (FormatArrayForSelectedFilterValues.length === 0) {
+                    RemoveAppliedResponsiveFilters(GlobalSwitchTimeZoneFilterNameContsant, selectedresponsivepreferenceswitchtimezone, selectedresponsivepreferenceswitchtimezonetbtnid, ShowInLocalTimeFilterQueryLocalStorageKey);
+                    FormatArrayForSelectedFilterValues.push(selectedresponsivepreferenceswitchtimezone);
+                } else {
+                    var isremovefilteralreadyranforthisfiltervalue = false;
+                    $.each(FormatArrayForSelectedFilterValues, function (selectedfiltervalueindex, selectedfiltervalue) {
+                        if (selectedresponsivepreferenceswitchtimezone === selectedfiltervalue) {
+                            isremovefilteralreadyranforthisfiltervalue = true;
+                            return false;
+                        }
+                    });
+                    if (!isremovefilteralreadyranforthisfiltervalue) {
+                        RemoveAppliedResponsiveFilters(GlobalSwitchTimeZoneFilterNameContsant, selectedresponsivepreferenceswitchtimezone, selectedresponsivepreferenceswitchtimezonetbtnid, ShowInLocalTimeFilterQueryLocalStorageKey);
+                        FormatArrayForSelectedFilterValues.push(selectedresponsivepreferenceswitchtimezone);
+                    }
+                }
+            }
+        };
+        selectedresponsiveswitchtimezonearray.push(1);
+
+        // add selected value into local storage
+        var lsquerystring = GlobalSwitchTimeZoneFilterNameContsant + "=" + 1;
+        AddFilterQueryToLocalStorage(ShowInLocalTimeFilterQueryLocalStorageKey, lsquerystring);
+    });
+    $('#ResponsiveSwitchEventTimeZoneToUserLocale:not(:checked)').each(function () {
+        isShowInLocalTimeFilterApplied = false;
+        var unselectedresponsivepreferenceswitchtimezone = GetBrowserLocationTimeZone();
+        var unselectedresponsivepreferenceswitchtimezonebtnid = (GlobalSwitchTimeZoneFilterNameContsant + unselectedresponsivepreferenceswitchtimezone).replace(/[^A-Z0-9]/ig, "") + "PreferenceApplied";
+        if ($("#" + unselectedresponsivepreferenceswitchtimezonebtnid).length > 0) {
+            $("#" + unselectedresponsivepreferenceswitchtimezonebtnid).remove();
+        };
+        unselectedresponsiveswitchtimezonearray.push(1);
+
+        // delete selected value from loal storage
+        var lsquerystring = GlobalSwitchTimeZoneFilterNameContsant + "=" + 1;
+        DeleteFilterQueryFromLocalStorage(ShowInLocalTimeFilterQueryLocalStorageKey, lsquerystring);
+    });
+}
+
+$('#ClearEventLanguageResponsivePreference').on('click', function () {
+    $('input[name="languageresponsivepreference"]:checked').each(function () {
+        var selectedresponsivefilterlanguage = $(this).val();
+
+        // remove selected language values from selectedresponsivelanguagearray array
+        $.each(selectedresponsivelanguagearray, function (index, value) {
+            if (value == selectedresponsivefilterlanguage) {
+                selectedresponsivelanguagearray.splice(value, 1);
+                return false;
+            }
+        });
+
+        // add cleared lanaguge filter values into unselectedresponsivelanguagearray
+        unselectedresponsivelanguagearray.push(selectedresponsivefilterlanguage);
+
+        // delete language filters in localstorage
+        localStorage.removeItem(LanguageFilterQueryLocalStorageKey);
+    });
+    $('input[name="languageresponsivepreference"]').prop('checked', false);
+
+    // hide clear event languge button
+    $('#ClearEventLanguageResponsivePreference').hide();
+
+    // hide responsive clear all preferences button if no prefernce refiner is added to events
+    if ($('input[name="languageresponsivepreference"]:checked').length == 0 && $('input[name="deliverylanguageresponsivepreference"]:checked').length == 0 && $('input[name="subtitlelanguageresponsivepreference"]:checked').length == 0 && $("#EventStartTimeResponsiveFilterItem").val().toLowerCase() === "12:00 am" &&
+        $("#EventEndTimeResponsiveFilterItem").val().toLowerCase() === "11:59 pm" && $('input[name="eventformatresponsivepreference"]:checked').length == 0
+        && $.trim($("#ResponsiveEventsLocations").val()) === '' && $('#ResponsiveSwitchEventTimeZoneToUserLocale:checked').length == 0) {
+        $('#ClearAllResponsivePreferences').hide();
+    }
+});
+
+$('#ClearEventdeliveryLanguageResponsivePreference').on('click', function () {
+    $('input[name="deliverylanguageresponsivepreference"]:checked').each(function () {
+        var selectedresponsivefilterdeliverylanguage = $(this).val();
+
+        // remove selected delivery language values from selectedresponsivelanguagearray array
+        $.each(selectedresponsivedeliverylanguagearray, function (index, value) {
+            if (value == selectedresponsivefilterdeliverylanguage) {
+                selectedresponsivedeliverylanguagearray.splice(value, 1);
+                return false;
+            }
+        });
+
+        // add cleared lanaguge filter values into unselectedresponsivedeliverylanguagearray
+        unselectedresponsivedeliverylanguagearray.push(selectedresponsivefilterdeliverylanguage);
+
+        // delete delivery language filters in localstorage
+        localStorage.removeItem(deliveryLanguageFilterQueryLocalStorageKey);
+    });
+    $('input[name="deliverylanguageresponsivepreference"]').prop('checked', false);
+
+    // hide clear event languge button
+    $('#ClearEventdeliveryLanguageResponsivePreference').hide();
+
+    // hide responsive clear all preferences button if no prefernce refiner is added to events
+    if ($('input[name="languageresponsivepreference"]:checked').length == 0 && $('input[name="deliverylanguageresponsivepreference"]:checked').length == 0 && $('input[name="subtitlelanguageresponsivepreference"]:checked').length == 0 && $("#EventStartTimeResponsiveFilterItem").val().toLowerCase() === "12:00 am" &&
+        $("#EventEndTimeResponsiveFilterItem").val().toLowerCase() === "11:59 pm" && $('input[name="eventformatresponsivepreference"]:checked').length == 0
+        && $.trim($("#ResponsiveEventsLocations").val()) === '' && $('#ResponsiveSwitchEventTimeZoneToUserLocale:checked').length == 0) {
+        $('#ClearAllResponsivePreferences').hide();
+    }
+});
+$('#ClearEventsubtitleLanguageResponsivePreference').on('click', function () {
+    $('input[name="subtitlelanguageresponsivepreference"]:checked').each(function () {
+        var selectedresponsivefiltersubtitlelanguage = $(this).val();
+
+        // remove selected subtitle language values from selectedresponsivelanguagearray array
+        $.each(selectedresponsivesubtitlelanguagearray, function (index, value) {
+            if (value == selectedresponsivefiltersubtitlelanguage) {
+                selectedresponsivesubtitlelanguagearray.splice(value, 1);
+                return false;
+            }
+        });
+
+        // add cleared lanaguge filter values into unselectedresponsivesubtitlelanguagearray
+        unselectedresponsivesubtitlelanguagearray.push(selectedresponsivefiltersubtitlelanguage);
+
+        // delete subtitle language filters in localstorage
+        localStorage.removeItem(subtitleLanguageFilterQueryLocalStorageKey);
+    });
+    $('input[name="subtitlelanguageresponsivepreference"]').prop('checked', false);
+
+    // hide clear event languge button
+    $('#ClearEventsubtitleLanguageResponsivePreference').hide();
+
+    // hide responsive clear all preferences button if no prefernce refiner is added to events
+    if ($('input[name="languageresponsivepreference"]:checked').length == 0 && $('input[name="subtitlelanguageresponsivepreference"]:checked').length == 0 && $("#EventStartTimeResponsiveFilterItem").val().toLowerCase() === "12:00 am" &&
+        $("#EventEndTimeResponsiveFilterItem").val().toLowerCase() === "11:59 pm" && $('input[name="eventformatresponsivepreference"]:checked').length == 0
+        && $.trim($("#ResponsiveEventsLocations").val()) === '' && $('#ResponsiveSwitchEventTimeZoneToUserLocale:checked').length == 0) {
+        $('#ClearAllResponsivePreferences').hide();
+    }
+});
+
+$('#ClearProductResponsivefilter').on('click', function () {
+    $('input[name="productresponsivefilter"]:checked').each(function () {
+        var selectedresponsivefilterproduct = $(this).val();
+
+        // remove selected product values from selectedresponsiveproductarray array
+        $.each(selectedresponsiveproductarray, function (index, value) {
+            if (value == selectedresponsivefilterproduct) {
+                selectedresponsiveproductarray.splice(index, 1);
+                return false;
+            }
+        });
+
+        // add cleared product filter values into unselectedresponsiveproductarray
+        unselectedresponsiveproductarray.push(selectedresponsivefilterproduct);
+    });
+    $('input[name="productresponsivefilter"]').prop('checked', false);
+
+    // hide clear product filter button
+    $('#ClearProductResponsivefilter').hide();
+
+    // hide responsive clear all button if no product filter is selected
+    if ($('input[name="responsivescenarioheading"]:checked').length == 0 && $('input[name="responsivescenariosubheading"]:checked').length == 0 && $('input[name="productresponsivefilter"]:checked').length == 0 &&
+        $('input[name="roleresponsivefilter"]:checked').length == 0 && $('input[name="industryresponsivefilter"]:checked').length == 0 && $("#FavDataSpanResponsive").text() === "0") {
+        $('#ClearAllResponsiveFilters').hide();
+    }
+});
+
+$('#ClearAllResponsiveFilters').on('click', function () {
+    // clare favourite events stored in session
+    //$('#FavDataSpanResponsive').text(0);
+
+    // get applied scenario filter values and remove applied filter button
+    $('input[name="responsivescenarioheading"]:checked').each(function () {
+        var selectedresponsivefilterscenario = $(this).val();
+
+        // remove selected product filter values from selectedresponsivescenarionamearray array
+        $.each(selectedresponsivescenarionamearray, function (index, value) {
+            if (value == selectedresponsivefilterscenario) {
+                selectedresponsivescenarionamearray.splice(value, 1);
+                return false;
+            }
+        });
+
+        // add cleared lanaguge filter values into unselectedresponsivescenarionamearray
+        unselectedresponsivescenarionamearray.push(selectedresponsivefilterscenario);
+    });
+    $('input[name="responsivescenariosubheading"]:checked').each(function () {
+        var selectedresponsivefilterscenario = $(this).val();
+
+        // remove selected scenario filter values from selectedresponsivescenarionamearray array
+        $.each(selectedresponsivescenarionamearray, function (index, value) {
+            if (value == selectedresponsivefilterscenario) {
+                selectedresponsivescenarionamearray.splice(value, 1);
+                return false;
+            }
+        });
+
+        // add cleared lanaguge filter values into unselectedresponsivescenarionamearray
+        unselectedresponsivescenarionamearray.push(selectedresponsivefilterscenario);
+    });
+
+    // get applied product filter values and remove applied filter button
+    $('input[name="productresponsivefilter"]:checked').each(function () {
+        var selectedresponsivefiltersproduct = $(this).val();
+
+        // remove selected product filter values from selectedresponsiveproductarray array
+        $.each(selectedresponsiveproductarray, function (index, value) {
+            if (value == selectedresponsivefiltersproduct) {
+                selectedresponsiveproductarray.splice(value, 1);
+                return false;
+            }
+        });
+
+        // add cleared lanaguge filter values into unselectedresponsiveproductarray
+        unselectedresponsiveproductarray.push(selectedresponsivefiltersproduct);
+    });
+
+    // get applied role filter values and remove applied filter button
+    $('input[name="roleresponsivefilter"]:checked').each(function () {
+        var selectedresponsivefiltersrole = $(this).val();
+
+        // remove selected role filter values from selectedresponsiverolearray array
+        $.each(selectedresponsiverolearray, function (index, value) {
+            if (value == selectedresponsivefiltersrole) {
+                selectedresponsiverolearray.splice(value, 1);
+                return false;
+            }
+        });
+
+        // add cleared lanaguge filter values into unselectedresponsiverolearray
+        unselectedresponsiverolearray.push(selectedresponsivefiltersrole);
+    });
+
+    // get applied industry filter values and remove applied filter button
+    $('input[name="industryresponsivefilter"]:checked').each(function () {
+        var selectedresponsivefiltersindustry = $(this).val();
+
+        // remove selected industry filter values from selectedresponsiveindustryarray array
+        $.each(selectedresponsiveindustryarray, function (index, value) {
+            if (value == selectedresponsivefiltersindustry) {
+                selectedresponsiveindustryarray.splice(value, 1);
+                return false;
+            }
+        });
+
+        // add cleared lanaguge filter values into unselectedresponsiveindustryarray
+        unselectedresponsiveindustryarray.push(selectedresponsivefiltersindustry);
+    });
+
+    ResetResponsiveFiltervaluesInFilterMenu();
+});
+
+function ResetResponsiveFiltervaluesInFilterMenu() {
+    // reset scenario filer values
+    $('input[name="responsivescenarioheading"]').prop('checked', false);
+    $('input[name="responsivescenariosubheading"]').prop('checked', false);
+
+    // reset product filer values
+    $('input[name="productresponsivefilter"]').prop('checked', false);
+
+    // reset role filer values
+    $('input[name="roleresponsivefilter"]').prop('checked', false);
+
+    // reset industry filer values
+    $('input[name="industryresponsivefilter"]').prop('checked', false);
+
+    // hide clear product button
+    $('#ClearProductResponsivefilter').hide();
+
+    // hide responsive clear all filters button
+    $('#ClearAllResponsiveFilters').hide();
+}
+
+$('#ClearAllResponsivePreferences').on('click', function () {
+    // get applied language preference values and remove applied filter button
+    $('input[name="languageresponsivepreference"]:checked').each(function () {
+        var selectedresponsivefilterlanguage = $(this).val();
+
+        // remove selected laguage values from selectedresponsivelanguagearray array
+        $.each(selectedresponsivelanguagearray, function (index, value) {
+            if (value == selectedresponsivefilterlanguage) {
+                selectedresponsivelanguagearray.splice(value, 1);
+                return false;
+            }
+        });
+
+        // add cleared lanaguge filter values into unselectedresponsivelanguagearray
+        unselectedresponsivelanguagearray.push(selectedresponsivefilterlanguage);
+    });
+
+    $('input[name="deliverylanguageresponsivepreference"]:checked').each(function () {
+        var selectedresponsivefilterdeliverylanguage = $(this).val();
+
+        // remove selected laguage values from selectedresponsivedeliverylanguagearray array
+        $.each(selectedresponsivedeliverylanguagearray, function (index, value) {
+            if (value == selectedresponsivefilterdeliverylanguage) {
+                selectedresponsivedeliverylanguagearray.splice(value, 1);
+                return false;
+            }
+        });
+
+        // add cleared lanaguge filter values into unselectedresponsivedeliverylanguagearray
+        unselectedresponsivedeliverylanguagearray.push(selectedresponsivefilterdeliverylanguage);
+    });
+
+
+    $('input[name="subtitlelanguageresponsivepreference"]:checked').each(function () {
+        var selectedresponsivefiltersubtitlelanguage = $(this).val();
+
+        // remove selected laguage values from selectedresponsivesubtitlelanguagearray array
+        $.each(selectedresponsivesubtitlelanguagearray, function (index, value) {
+            if (value == selectedresponsivefiltersubtitlelanguage) {
+                selectedresponsivesubtitlelanguagearray.splice(value, 1);
+                return false;
+            }
+        });
+
+        // add cleared lanaguge filter values into unselectedresponsivesubtitlelanguagearray
+        unselectedresponsivesubtitlelanguagearray.push(selectedresponsivefiltersubtitlelanguage);
+    });
+
+    // get applied time preference values and remove applied filter button
+    var starttime12hrsformat = $("#EventStartTimeResponsiveFilterItem").val();
+    var endtime12hrsformat = $("#EventEndTimeResponsiveFilterItem").val();
+    var starttime24hrsformat = ConvertTo24HrsTime(starttime12hrsformat);
+    var endtime24hrsformat = ConvertTo24HrsTime(endtime12hrsformat);
+    if (starttime24hrsformat != "00:00" || endtime24hrsformat != "23:59") {
+        responsivestarttimequery = "00:00";
+        responsiveendtimequery = "23:59";
+    }
+
+    // get applied format preference values and remove applied filter button
+    $('input[name="eventformatresponsivepreference"]:checked').each(function () {
+        var selectedresponsivefilterformat = $(this).val();
+
+        // remove selected format values from selectedresponsiveformatarray array
+        $.each(selectedresponsiveformatarray, function (index, value) {
+            if (value == selectedresponsivefilterformat) {
+                selectedresponsiveformatarray.splice(value, 1);
+                return false;
+            }
+        });
+
+        // add cleared format filter values into unselectedresponsiveformatarray
+        unselectedresponsiveformatarray.push(selectedresponsivefilterformat);
+    });
+
+    // get applied location preference value and remove applied filter button
+    var searchkeyword = $.trim($("#ResponsiveEventsLocations").val());
+    if (searchkeyword != '') {
+        responsiveeventlocationforclearallprefrencesbutton = GlobalLocationFilterNameContsant + "=" + searchkeyword;
+        responsiveeventlocationsearch = null;
+    }
+
+    // get applied location distance preference values and remove applied filter button
+    $('input[name="responsivedistancepreference"]:checked').each(function () {
+        var selectedresponsivefilterdistance = $(this).val();
+
+        // remove selected format values from selectedlocationdistancearray array
+        $.each(selectedlocationdistancearray, function (index, value) {
+            if (value == selectedresponsivefilterdistance) {
+                unselectedlocationdistancearray.splice(value, 1);
+                return false;
+            }
+        });
+
+        // add cleared format filter values into unselectedlocationdistancearray
+        unselectedlocationdistancearray.push(selectedresponsivefilterdistance);
+    });
+
+    // get applied switch timezone preference values and remove applied filter button
+    $('#ResponsiveSwitchEventTimeZoneToUserLocale:checked').each(function () {
+        var selectedresponsiveswitchtimezonefilter = $(this).val();
+
+        // remove selected switchtimezone values from selectedresponsiveswitchtimezonearray array
+        $.each(selectedresponsiveswitchtimezonearray, function (index, value) {
+            if (value == selectedresponsiveswitchtimezonefilter) {
+                selectedresponsiveswitchtimezonearray.splice(value, 1);
+                return false;
+            }
+        });
+
+        // add cleared format filter values into unselectedresponsiveswitchtimezonearray
+        unselectedresponsiveswitchtimezonearray.push(selectedresponsiveswitchtimezonefilter);
+    });
+
+    // delete preferences from localstorage
+    localStorage.removeItem(LanguageFilterQueryLocalStorageKey);
+    localStorage.removeItem(deliveryLanguageFilterQueryLocalStorageKey);
+    localStorage.removeItem(subtitleLanguageFilterQueryLocalStorageKey);
+    localStorage.removeItem(ShowInLocalTimeFilterQueryLocalStorageKey);
+    localStorage.removeItem(EventStartTimeIntervalStartingValueLocalStorageKey);
+    localStorage.removeItem(EventStartTimeIntervalEndValueLocalStorageKey);
+    localStorage.removeItem(EventFormatFilterQueryLocalStorageKey);
+    localStorage.removeItem(EventLocationFilterQueryLocalStorageKey);
+    localStorage.removeItem(EventLocationDistanceFilterQueryLocalStorageKey);
+
+    ResetResponsivePrefrencesInFilterMenu();
+});
+
+function ResetResponsivePrefrencesInFilterMenu() {
+    // reset responsive language preference
+    $('input[name="languageresponsivepreference"]').prop('checked', false);
+    $('input[name="deliverylanguageresponsivepreference"]').prop('checked', false);
+    $('input[name="subtitlelanguageresponsivepreference"]').prop('checked', false);
+    // reset time preference
+    $("#timerange-responsiveslider").slider({
+        range: true,
+        min: 0,
+        max: 1439,
+        values: [0, 1439]
+    });
+    convertResponsiveSliderValuesToTime($("#timerange-responsiveslider").slider("values", 0), $("#timerange-responsiveslider").slider("values", 1));
+
+    // reset responsive format preference
+    $('input[name="eventformatresponsivepreference"]').prop('checked', false);
+
+    // reset location prefernce value
+    var emptyvalue = '';
+    $("#ResponsiveEventsLocations").val(emptyvalue);
+    $("#ClearResponsiveEventsLocationField").addClass("hide-dom-element");
+
+    // deselect distance radio buttons, remove dynamic filter applied button and hide the content
+    $('input[name="responsivedistancepreference"]').prop("checked", false);
+    $("#ResponsiveLocationDistanceContent").addClass("hide-dom-element");
+
+    // reset responsive switch timezone preference
+    $('#ResponsiveSwitchEventTimeZoneToUserLocale').prop('checked', false);
+
+    // hide clear event languge button
+    $('#ClearEventLanguageResponsivePreference').hide();
+    $('#ClearEventdeliveryLanguageResponsivePreference').hide();
+    $('#ClearEventsubtitleLanguageResponsivePreference').hide();
+    // hide responsive clear all preferences button
+    $('#ClearAllResponsivePreferences').hide();
+}
+
+$("#ApplyResponsiveFilterSelections").click(function () {
+    // clear favourites session if it is unselected using clear all filters
+    if ($("#FavDataSpanResponsive").text() === "0") {
+        //sessionStorage.clear();
+        $(".box").each(function () {
+            $(this).css('display', 'block');
+            $(this).find(".listcnt").addClass("favourite-inactive");
+            $(this).find(".listcnt").removeClass("favourite-selected");
+        })
+        $(".c-card").each(function () {
+            $(this).css('display', 'block');
+            $(this).find(".gridcnt").addClass("favourite-inactive");
+            $(this).find(".gridcnt").removeClass("favourite-selected");
+        });
+    }
+
+    ApplyScenarioNameResponsiveFilter();
+    ApplyProductResponsiveFilter();
+    ApplyRoleResponsiveFilter();
+    ApplyIndustryResponsiveFilter();
+    ApplyLanguageResponsivePreference();
+    ApplydeliveryLanguageResponsivePreference();
+    ApplysubtitleLanguageResponsivePreference();
+    ApplyEventsTimeResponsiveFilter();
+    ApplyEventFormatResponsivePreference();
+    ApplyResponsiveEventLocationFilter();
+    ApplyResponsiveLocationDistanceFilter();
+    if (isStartTimeFilterApplied == false) {
+        ApplyEventResponsiveSwitchTimeZonePreference();
+    }
+    AjaxCallForEventsDataInResponsiveFilter();
+
+    // hide applied filters section when no filters are applied
+    if ($(".filterbtn-container").is(":empty")) {
+        $(".applied-filters").hide();
+    }
+});
+
+function RemoveUnselectedResponsiveFilterValues(unselectedresponsivefilterarray, urlpath, filtername) {
+    $.each(unselectedresponsivefilterarray, function (index, value) {
+        var querystring = filtername + "=" + value;
+
+        var urlpatharray = urlpath.split("&");
+        for (var i = parseInt(0); i < urlpatharray.length; i++) {
+            if (urlpatharray[i] === querystring) {
+                urlpatharray.splice(i, 1);
+                i--;
+            }
+        }
+        urlpath = urlpatharray.join("&");
+    });
+
+    return urlpath;
+}
+
+function RemoveUnselectedResponsiveFilterValuesBySplittingURL(unselectedresponsivefilterarray, urlpath, filtername) {
+    urlpatharray = urlpath.split("&");
+
+    for (var i = 0; i < unselectedresponsivefilterarray.length; i++) {
+        var querystring = filtername + "=" + unselectedresponsivefilterarray[i];
+        for (var j = 0; j < urlpatharray.length; j++) {
+            if (querystring == urlpatharray[j]) {
+                urlpatharray.splice(j, 1);
+                j--;
+            }
+        }
+    }
+    urlpath = urlpatharray.join("&");
+
+    return urlpath;
+}
+
+function AppendSelectedResponsiveFilterValues(selectedresponsivefilterarray, urlpath, filtername) {
+    $.each(selectedresponsivefilterarray, function (index, value) {
+        var querystring = null;
+        if (filtername == GlobalSwitchTimeZoneFilterNameContsant) {
+            querystring = filtername + "=" + value;
+        } else {
+            querystring = filtername + "=" + value.replace(/\&/g, "%26");
+        }
+        if (urlpath.indexOf(querystring) > -1) {
+            var isFiltervailbale = false;
+            var urlpatharray = urlpath.split("&");
+            $.each(urlpatharray, function (index, value) {
+                if (value == querystring) {
+                    isFiltervailbale = true;
+                }
+            });
+            if (!isFiltervailbale) {
+                urlpath = urlpath + "&" + querystring;
+            } else {
+                urlpath = urlpath;
+            }
+
+        } else {
+            urlpath = urlpath + "&" + querystring;
+        }
+    });
+
+    return urlpath;
+}
+
+function AppendSelectedResponsiveScenarioNameFilterValues(selectedresponsivefilterarray, urlpath, filtername) {
+    urlpatharray = urlpath.split("&");
+
+    // remove child scenario names when parent scenario is selected
+    for (var i = 0; i < selectedresponsivefilterarray.length; i++) {
+        var querystring = filtername + "=" + selectedresponsivefilterarray[i];
+        for (var j = 0; j < urlpatharray.length; j++) {
+            if (urlpatharray[j].indexOf(querystring) > -1) {
+                urlpatharray.splice(j, 1);
+                j--;
+            }
+        }
+    }
+
+    // now push selected scenario values to url path
+    $.each(selectedresponsivefilterarray, function (index, value) {
+        var querystringtopushintourl = filtername + "=" + value;
+        urlpatharray.push(querystringtopushintourl);
+    });
+    urlpath = urlpatharray.join("&");
+
+    return urlpath;
+}
+
+function AppendResponsiveTimeFilterValues(eventstartqueryname, eventstartqueryvalue, eventendqueryname, eventendqueryvalue, urlpath) {
+    startimequerystring = eventstartqueryname + "=" + eventstartqueryvalue;
+    endtimequerystring = eventendqueryname + "=" + eventendqueryvalue;
+    filterquerystring = startimequerystring + "&" + endtimequerystring;
+
+    // check if the url path already has starttime filter applied
+    if (urlpath.indexOf(eventstartqueryname + "=") > -1 || urlpath.indexOf(eventendqueryname + "=") > -1) {
+
+        // split the url path, search for already applied starttime filter and endtime filter and remove it
+        var urlpatharray = urlpath.split("&");
+        $.each(urlpatharray, function (index, value) {
+            if (value.indexOf(eventstartqueryname + "=") > -1) {
+                urlpatharray.splice(index, 1);
+                return false;
+            }
+        });
+        $.each(urlpatharray, function (index, value) {
+            if (value.indexOf(eventendqueryname + "=") > -1) {
+                urlpatharray.splice(index, 1);
+                return false;
+            }
+        });
+        if (eventstartqueryvalue != "00:00" || eventendqueryvalue != "23:59") {
+            urlpatharray.push(startimequerystring);
+            urlpatharray.push(endtimequerystring);
+        }
+
+        urlpath = urlpatharray.join("&");
+    } else {
+        if (eventstartqueryvalue != "00:00" || eventendqueryvalue != "23:59") {
+            urlpath = urlpath + "&" + filterquerystring;
+        }
+    }
+
+    return urlpath;
+}
+
+function AjaxCallForEventsDataInResponsiveFilter() {
+    var eventsURL = decodeURI(window.location.href);
+    var showeventsinlocaltimezoneval = null;
+    var applylocaltimefilter = null
+    var filterquerystringwithvaluesasZero = GlobalSwitchTimeZoneFilterNameContsant + "=" + 0;
+    var filterquerystringwithvaluesasNo = GlobalSwitchTimeZoneFilterNameContsant + "=" + "No";
+    var filterquerystringwithvaluesas1 = GlobalSwitchTimeZoneFilterNameContsant + "=" + 1;
+    var islistcardview = false;
+    if ($("#EventListCardToggleButton").hasClass("listcard-togglebtn-active")) {
+        islistcardview = true;
+    }
+
+    if (eventsURL.indexOf("?") > -1) {
+        var urloriginandpatharray = eventsURL.split("?");
+        if (urloriginandpatharray[1]) {
+            var urlpatharraytz = urloriginandpatharray[1].split("&");
+            // remove clientTimeZone querystrings with values as zero and "No"
+            if (isStartTimeFilterApplied || isShowInLocalTimeFilterApplied) {
+                for (var i = 0; i < urlpatharraytz.length; i++) {
+                    if (urlpatharraytz[i].toLowerCase() == filterquerystringwithvaluesasZero.toLowerCase() || urlpatharraytz[i].toLowerCase() == filterquerystringwithvaluesasNo.toLowerCase()) {
+                        urlpatharraytz.splice(i, 1);
+                        i--;
+                    }
+                }
+            }
+            urloriginandpatharray[1] = urlpatharraytz.join("&");
+        }
+        if (unselectedresponsivescenarionamearray.length > 0) {
+            var filtername = GlobalScenarioFilterNameContsant;
+            urloriginandpatharray[1] = RemoveUnselectedResponsiveFilterValuesBySplittingURL(unselectedresponsivescenarionamearray, urloriginandpatharray[1], filtername);
+        }
+        if (unselectedresponsiveproductarray.length > 0) {
+            var filtername = GlobalProductFilterNameContsant;
+            urloriginandpatharray[1] = RemoveUnselectedResponsiveFilterValues(unselectedresponsiveproductarray, urloriginandpatharray[1], filtername);
+        }
+        if (unselectedresponsiverolearray.length > 0) {
+            var filtername = GlobalRoleFilterNameContsant ;
+            urloriginandpatharray[1] = RemoveUnselectedResponsiveFilterValues(unselectedresponsiverolearray, urloriginandpatharray[1], filtername);
+        }
+        if (unselectedresponsiveindustryarray.length > 0) {
+            var filtername = GlobalIndustryFilterNameContsant;
+            urloriginandpatharray[1] = RemoveUnselectedResponsiveFilterValues(unselectedresponsiveindustryarray, urloriginandpatharray[1], filtername);
+        }
+        if (unselectedresponsivelanguagearray.length > 0) {
+            var filtername = GlobalLangugeFilterNameContsant;
+            urloriginandpatharray[1] = RemoveUnselectedResponsiveFilterValues(unselectedresponsivelanguagearray, urloriginandpatharray[1], filtername);
+        }
+        if (unselectedresponsivedeliverylanguagearray.length > 0) {
+            var filtername = GlobaldeliveryLangugeFilterNameContsant;
+            urloriginandpatharray[1] = RemoveUnselectedResponsiveFilterValues(unselectedresponsivedeliverylanguagearray, urloriginandpatharray[1], filtername);
+        }
+        if (unselectedresponsivesubtitlelanguagearray.length > 0) {
+            var filtername = GlobalsubtitleLangugeFilterNameContsant;
+            urloriginandpatharray[1] = RemoveUnselectedResponsiveFilterValues(unselectedresponsivesubtitlelanguagearray, urloriginandpatharray[1], filtername);
+        }
+        if (unselectedresponsiveformatarray.length > 0) {
+            var filtername = GlobalFormatFilterNameContsant;
+            urloriginandpatharray[1] = RemoveUnselectedResponsiveFilterValues(unselectedresponsiveformatarray, urloriginandpatharray[1], filtername);
+        }
+        if (unselectedresponsiveswitchtimezonearray.length > 0) {
+            var filtername = GlobalSwitchTimeZoneFilterNameContsant;
+            urloriginandpatharray[1] = RemoveUnselectedResponsiveFilterValues(unselectedresponsiveswitchtimezonearray, urloriginandpatharray[1], filtername);
+        }
+        if (selectedresponsivescenarionamearray.length > 0) {
+            var filtername = GlobalScenarioFilterNameContsant;
+            urloriginandpatharray[1] = AppendSelectedResponsiveScenarioNameFilterValues(selectedresponsivescenarionamearray, urloriginandpatharray[1], filtername);
+        }
+        if (selectedresponsiveproductarray.length > 0) {
+            var filtername = GlobalProductFilterNameContsant;
+            urloriginandpatharray[1] = AppendSelectedResponsiveFilterValues(selectedresponsiveproductarray, urloriginandpatharray[1], filtername);
+        }
+        if (selectedresponsiverolearray.length > 0) {
+            var filtername = GlobalRoleFilterNameContsant ;
+            urloriginandpatharray[1] = AppendSelectedResponsiveFilterValues(selectedresponsiverolearray, urloriginandpatharray[1], filtername);
+        }
+        if (selectedresponsiveindustryarray.length > 0) {
+            var filtername = GlobalIndustryFilterNameContsant;
+            urloriginandpatharray[1] = AppendSelectedResponsiveFilterValues(selectedresponsiveindustryarray, urloriginandpatharray[1], filtername);
+        }
+        if (selectedresponsivelanguagearray.length > 0) {
+            var filtername = GlobalLangugeFilterNameContsant;
+            urloriginandpatharray[1] = AppendSelectedResponsiveFilterValues(selectedresponsivelanguagearray, urloriginandpatharray[1], filtername);
+        }
+        if (selectedresponsivedeliverylanguagearray.length > 0) {
+            var filtername = GlobaldeliveryLangugeFilterNameContsant;
+            urloriginandpatharray[1] = AppendSelectedResponsiveFilterValues(selectedresponsivedeliverylanguagearray, urloriginandpatharray[1], filtername);
+        }
+        if (selectedresponsivesubtitlelanguagearray.length > 0) {
+            var filtername = GlobalsubtitleLangugeFilterNameContsant;
+            urloriginandpatharray[1] = AppendSelectedResponsiveFilterValues(selectedresponsivesubtitlelanguagearray, urloriginandpatharray[1], filtername);
+        }
+        if (responsivestarttimequery != null && responsiveendtimequery != null) {
+            var starttimefiltername = GlobalStartTimeFilterNameContsant;
+            var endtimefiltername = GlobalEndTimeFilterNameContsant;
+            urloriginandpatharray[1] = AppendResponsiveTimeFilterValues(starttimefiltername, responsivestarttimequery, endtimefiltername, responsiveendtimequery, urloriginandpatharray[1]);
+        }
+        if (selectedresponsiveformatarray.length > 0) {
+            var filtername = GlobalFormatFilterNameContsant;
+            urloriginandpatharray[1] = AppendSelectedResponsiveFilterValues(selectedresponsiveformatarray, urloriginandpatharray[1], filtername);
+        }
+        if (selectedresponsiveswitchtimezonearray.length > 0) {
+            var filtername = GlobalSwitchTimeZoneFilterNameContsant;
+            urloriginandpatharray[1] = AppendSelectedResponsiveFilterValues(selectedresponsiveswitchtimezonearray, urloriginandpatharray[1], filtername);
+            showeventsinlocaltimezoneval = GetBrowserLocationTimeZone();
+        }
+        if (responsiveeventlocationsearch != null && $.trim(responsiveeventlocationsearch) !== '') {
+            var locationqueryparamwithampersand = "&" + responsiveeventlocationsearch;
+            if (urloriginandpatharray[1].indexOf(locationqueryparamwithampersand) > -1) {
+                urloriginandpatharray[1] = urloriginandpatharray[1].replace(locationqueryparamwithampersand, '');
+            }
+            if (urloriginandpatharray[1].indexOf(responsiveeventlocationsearch) > -1) {
+                urloriginandpatharray[1] = urloriginandpatharray[1].replace(responsiveeventlocationsearch, '');
+            }
+            urloriginandpatharray[1] = urloriginandpatharray[1] + "&" + responsiveeventlocationsearch;
+        } else {
+            var urlpatharray = urloriginandpatharray[1].split("&");
+            for (var i = 0; i < urlpatharray.length; i++) {
+                if (urlpatharray[i].indexOf(GlobalLocationFilterNameContsant + "=") > -1) {
+                    urlpatharray.splice(i, 1);
+                    i--;
+                }
+            }
+            urloriginandpatharray[1] = urlpatharray.join("&");
+        }
+        if (unselectedlocationdistancearray.length > 0) {
+            var filtername = GlobalDistanceFilterNameConstant;
+            urloriginandpatharray[1] = RemoveUnselectedResponsiveFilterValues(unselectedlocationdistancearray, urloriginandpatharray[1], filtername);
+        }
+        if (selectedlocationdistancearray.length > 0) {
+            var filtername = GlobalDistanceFilterNameConstant;
+            urloriginandpatharray[1] = AppendSelectedResponsiveFilterValues(selectedlocationdistancearray, urloriginandpatharray[1], filtername);
+        }
+        if (responsiveeventlocationforclearallprefrencesbutton != null && $.trim(responsiveeventlocationforclearallprefrencesbutton) !== '') {
+            var querywithampersand = "&" + responsiveeventlocationforclearallprefrencesbutton;
+            if (urloriginandpatharray[1].indexOf(querywithampersand) > -1) {
+                urloriginandpatharray[1] = urloriginandpatharray[1].replace(querywithampersand, '');
+            }
+            if (urloriginandpatharray[1].indexOf(responsiveeventlocationforclearallprefrencesbutton) > -1) {
+                urloriginandpatharray[1] = urloriginandpatharray[1].replace(responsiveeventlocationforclearallprefrencesbutton, '');
+            }
+        }
+        if (urloriginandpatharray[1].length > 0) {
+            var ajaxeventsurl = encodeURI(urloriginandpatharray.join("?"));
+        } else {
+            if (urloriginandpatharray.length > 2) {
+                var newfilteredurloriginandpatharray = RemoveNullorEmptyElementsFromArray(urloriginandpatharray);
+                var ajaxeventsurl = encodeURI(newfilteredurloriginandpatharray.join("?"));
+            } else {
+                var ajaxeventsurl = encodeURI(urloriginandpatharray[0]);
+            }
+        }
+
+        // enable localtimefilter if startime filter is applied
+        if (ajaxeventsurl.indexOf(GlobalStartTimeFilterNameContsant + "=") > -1 && ajaxeventsurl.indexOf(GlobalEndTimeFilterNameContsant + "=") > -1) {
+            applylocaltimefilter = 1;
+            showeventsinlocaltimezoneval = GetBrowserLocationTimeZone();
+        }
+
+        // make LangugeFilterApplied to false only if all languge filters are removed
+        if (ajaxeventsurl.indexOf(GlobalLangugeFilterNameContsant + "=") > -1) {
+            LangugeFilterApplied = true;
+        } else {
+            LangugeFilterApplied = false;
+        }
+
+        window.history.pushState({}, null, ajaxeventsurl);
+
+        $("#ProgressBarContainer").removeClass("hide-dom-element");
+        $.ajax({
+            type: "GET",
+            url: ajaxeventsurl,
+            data: { returnPartialview: true, enableListCardView: islistcardview, latitudeValue: GeoLocationLatitudeValue, longitudeValue: GeoLocationLongitueValue, isLangugeFilterApplied: LangugeFilterApplied, isChineseBowserLocation: IsBrowserLocationInChina, clientTimeZone: applylocaltimefilter, eventsLocalTimeZonevalue: showeventsinlocaltimezoneval },
+            success: function (response) {
+                if (response) {
+                    favDataLoaded = false;
+                    $("#event-summary-panel").html(response.eventsPartialView);
+                    $("#events-filter-panel").html(response.filterLargeScreenPartialView);
+                    $("#events-responsive-filterpanel").html(response.filterSmallScreenPartialView);
+                    updateFavCount();
+                    $("#ProgressBarContainer").addClass("hide-dom-element");
+                    Refinedresultcountfocus();
+                }
+            }
+        });
+    } else {
+        var queryparams = [];
+
+        if (selectedresponsivescenarionamearray.length > 0) {
+            $.each(selectedresponsivescenarionamearray, function (index, value) {
+                queryparams.push(GlobalScenarioFilterNameContsant + "=" + value.replace(/\&/g, "%26"));
+            });
+        }
+
+        if (selectedresponsiveproductarray.length > 0) {
+            $.each(selectedresponsiveproductarray, function (index, value) {
+                queryparams.push(GlobalProductFilterNameContsant + "=" + value.replace(/\&/g, "%26"));
+            });
+        }
+        if (selectedresponsiverolearray.length > 0) {
+            $.each(selectedresponsiverolearray, function (index, value) {
+                queryparams.push(GlobalRoleFilterNameContsant + "=" + value.replace(/\&/g, "%26"));
+            });
+        }
+        if (selectedresponsiveindustryarray.length > 0) {
+            $.each(selectedresponsiveindustryarray, function (index, value) {
+                queryparams.push(GlobalIndustryFilterNameContsant + "=" + value.replace(/\&/g, "%26"));
+            });
+        }
+        if (selectedresponsivelanguagearray.length > 0) {
+            $.each(selectedresponsivelanguagearray, function (index, value) {
+                queryparams.push(GlobalLangugeFilterNameContsant + "=" + value.replace(/\&/g, "%26"));
+            });
+        }
+        if (selectedresponsivedeliverylanguagearray.length > 0) {
+            $.each(selectedresponsivedeliverylanguagearray, function (index, value) {
+                queryparams.push(GlobaldeliveryLangugeFilterNameContsant + "=" + value.replace(/\&/g, "%26"));
+            });
+        }
+        if (selectedresponsivesubtitlelanguagearray.length > 0) {
+            $.each(selectedresponsivesubtitlelanguagearray, function (index, value) {
+                queryparams.push(GlobalsubtitleLangugeFilterNameContsant + "=" + value.replace(/\&/g, "%26"));
+            });
+        }
+        if (responsivestarttimequery != null && responsiveendtimequery != null) {
+            if (responsivestarttimequery !== "00:00" || responsiveendtimequery !== "23:59") {
+                var starttimefilter = GlobalStartTimeFilterNameContsant + "=" + responsivestarttimequery;
+                var endtimefilter = GlobalEndTimeFilterNameContsant + "=" + responsiveendtimequery;
+                queryparams.push(starttimefilter);
+                queryparams.push(endtimefilter);
+            }
+        }
+        if (selectedresponsiveformatarray.length > 0) {
+            $.each(selectedresponsiveformatarray, function (index, value) {
+                queryparams.push(GlobalFormatFilterNameContsant + "=" + value.replace(/\&/g, "%26"));
+            });
+        }
+        if (selectedresponsiveswitchtimezonearray.length > 0) {
+            $.each(selectedresponsiveswitchtimezonearray, function (index, value) {
+                queryparams.push(GlobalSwitchTimeZoneFilterNameContsant + "=" + value);
+                showeventsinlocaltimezoneval = GetBrowserLocationTimeZone();
+            });
+        }
+        if (responsiveeventlocationsearch != null && $.trim(responsiveeventlocationsearch) !== '') {
+            queryparams.push(responsiveeventlocationsearch);
+        }
+        if (selectedlocationdistancearray.length > 0) {
+            $.each(selectedlocationdistancearray, function (index, value) {
+                queryparams.push(GlobalDistanceFilterNameConstant + "=" + value.replace(/\&/g, "%26"));
+            });
+        }
+
+        var ajaxeventsurl = encodeURI(eventsURL + "?" + queryparams.join("&"));
+
+        // enable localtimefilter if startime filter is applied
+        if (ajaxeventsurl.indexOf(GlobalStartTimeFilterNameContsant + "=") > -1 && ajaxeventsurl.indexOf(GlobalEndTimeFilterNameContsant + "=") > -1) {
+            applylocaltimefilter = 1;
+            showeventsinlocaltimezoneval = GetBrowserLocationTimeZone();
+        }
+
+        // make LangugeFilterApplied to false only if all languge filters are removed
+        if (ajaxeventsurl.indexOf(GlobalLangugeFilterNameContsant + "=") > -1) {
+            LangugeFilterApplied = true;
+        } else {
+            LangugeFilterApplied = false;
+        }
+
+        window.history.pushState({}, null, ajaxeventsurl);
+
+        $("#ProgressBarContainer").removeClass("hide-dom-element");
+        $.ajax({
+            type: "GET",
+            url: ajaxeventsurl,
+            data: { returnPartialview: true, enableListCardView: islistcardview, latitudeValue: GeoLocationLatitudeValue, longitudeValue: GeoLocationLongitueValue, isLangugeFilterApplied: LangugeFilterApplied, isChineseBowserLocation: IsBrowserLocationInChina, clientTimeZone: applylocaltimefilter, eventsLocalTimeZonevalue: showeventsinlocaltimezoneval },
+            success: function (response) {
+                if (response) {
+                    favDataLoaded = false;
+                    $("#event-summary-panel").html(response.eventsPartialView);
+                    $("#events-filter-panel").html(response.filterLargeScreenPartialView);
+                    $("#events-responsive-filterpanel").html(response.filterSmallScreenPartialView);
+                    updateFavCount();
+                    $("#ProgressBarContainer").addClass("hide-dom-element");
+                    Refinedresultcountfocus();
+                }
+            }
+        });
+    }
+}

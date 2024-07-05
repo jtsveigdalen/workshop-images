@@ -1,0 +1,3312 @@
+﻿$(document).ready(function () {
+    //FocusOnResultCountOnPageLoad(0);     
+    closeSharePopUpOnCloseButtonClick();
+    closeSharePopUpOnCopyButtonClick();
+    convertSliderValuesToTime($("#timerange-slider").slider("values", 0), $("#timerange-slider").slider("values", 1));
+    RenderAutoCompleteForEventLocations();
+    SetDefaultFilterValuesFromURLParams();
+    SetDefaultFiltersAccordianState();
+    var eventsURL = decodeURI(window.location.href);
+    // hide clear product filters button if no filters are applied
+    if ($('input[name="product"]:checked').length == 0) {
+        $('#ClearProductFilter').hide();
+    }
+
+    // hide clear all button if no product filter is selected
+    if ($('input[name="scenarioheading"]:checked').length == 0 && $('input[name="scenariosubheading"]:checked').length == 0 && $('input[name="product"]:checked').length == 0 &&
+        $('input[name="role"]:checked').length == 0 && $('input[name="industry"]:checked').length == 0 && $("#FavDataSpan").text() === "0") {
+        $('#ClearAllFilters').hide();
+    }
+
+    // hide clear event languge button if no language filter is selected
+    if ($('input[name="language"]:checked').length == 0) {
+        $('#ClearEventLanguage').hide();
+    }
+    // hide clear event languge button if no deliverylanguage filter is selected
+    if ($('input[name="deliverylanguage"]:checked').length == 0) {
+        $('#ClearEventdeliveryLanguage').hide();
+    }
+    // hide clear event languge button if no subtitlelanguage filter is selected
+    if ($('input[name="subtitlelanguage"]:checked').length == 0) {
+        $('#ClearEventsubtitleLanguage').hide();
+    }
+
+    // hide clear all filter preferences button if no prefernce refiner is added to events
+    if ($("#EventStartTime").length > 0 && $("#EventEndTime").length > 0) {
+        if ($('input[name="language"]:checked').length == 0 && $('input[name="deliverylanguage"]:checked').length == 0 && $('input[name="subtitlelanguage"]:checked').length == 0 && $("#EventStartTime").val().toLowerCase() === "12:00 am" && $("#EventEndTime").val().toLowerCase() === "11:59 pm"
+            && $('input[name="format"]:checked').length == 0 && $.trim($("#EventsLocations").val()) === '' && $("#SwitchEventTimeZoneToUserLocale:checked").length == 0) {
+            $('#ClearAllPreferences').hide();
+        }
+    }
+
+    if (eventsURL.indexOf(GlobalStartTimeFilterNameContsant + "=") > -1 && eventsURL.indexOf(GlobalEndTimeFilterNameContsant + "=") > -1) {
+        $("#SwitchEventTimeZoneToUserLocale").prop("checked", true);
+        $("#SwitchEventTimeZoneToUserLocale").prop("disabled", true);
+    } else {
+        $("#SwitchEventTimeZoneToUserLocale").prop("checked", false);
+        $("#SwitchEventTimeZoneToUserLocale").prop("disabled", false);
+    }
+
+    // append name and type properties to time slider
+    $(".ui-slider-handle").attr("role", "slider");
+    $("#timerange-slider").children('span').eq(0).attr("aria-label", "Earliest Start Time");
+    $("#timerange-slider").children('span').eq(1).attr("aria-label", "Latest Start Time");
+    $("#timerange-slider").children('span').eq(0).attr("aria-valuenow", ConvertTo24HrsTime($("#EventStartTime").val()).replace(":", ""));
+    $("#timerange-slider").children('span').eq(1).attr("aria-valuenow", ConvertTo24HrsTime($("#EventEndTime").val()).replace(":", ""));
+    $("#timerange-slider").children('span').eq(0).attr("id", "EarliestStartTimeSlider");
+    $("#timerange-slider").children('span').eq(1).attr("id", "LatestStartTimeSlider");
+
+    if (GlobalLastFocusedElement) {
+        SetTabkKeyFocus(GlobalLastFocusedElement);
+    }
+});
+
+function SetTabkKeyFocus(VarGlobalLastFocusedElement) {
+    if (VarGlobalLastFocusedElement === "filtersapplied") {
+        if ($("." + VarGlobalLastFocusedElement + " button").length > 0) {
+            $("." + VarGlobalLastFocusedElement).children("button").eq(0).focus();
+        }
+    } else {
+        $("#" + VarGlobalLastFocusedElement).focus();
+    }
+}
+
+function closeSharePopUpOnCloseButtonClick() {
+    $(".close").keyup(function (event) {
+        if (event.keyCode === 13) {
+            $(this).parent().parent().removeClass('open');
+            $(this).parent().parent().removeClass('opentest');
+        }
+    });
+}
+
+function closeSharePopUpOnCopyButtonClick() {
+    $(".copylink").keyup(function (event) {
+        if (event.keyCode === 13) {
+            value = $(this).data('clipboard-text');
+            var $temp = $("<input>");
+            $("body").append($temp);
+            $temp.val(value).select();
+            document.execCommand("copy");
+            $temp.remove();
+
+            var currentInstance = $(this);
+            var clickedButtonId = $(this).find('span').attr('id');
+            var copyTextOnButtonClick = $(".copy-click-text").html();
+            $("#" + clickedButtonId).html(copyTextOnButtonClick);
+
+            currentInstance.parent().parent().parent().addClass('opentest');
+            setTimeout(function () {
+                var copyTextOnButtonClickForNavLink = $(".copy-link-items-nav").html();
+                var revertText = $(".copy-click-text-revert").html();
+                if (clickedButtonId == "copyurlnavigation") {
+                    revertText = copyTextOnButtonClickForNavLink;
+                }
+                $("#" + clickedButtonId).html(revertText);
+                $(".copylink").parent().parent().parent().removeClass('opentest');
+                $(".copylink").parent().parent().parent().removeClass('open');
+            }, 1000);
+        }
+    });
+}
+
+$(".close").click(function () {
+    $(this).parent().parent().removeClass('opentest');
+})
+
+
+$(".copylink").click(function () {
+    var currentInstance = $(this);
+    var clickedButtonId = $(this).find('span').attr('id');
+
+    var copyTextOnButtonClick = $(".copy-click-text").html();
+
+    $("#" + clickedButtonId).html(copyTextOnButtonClick);
+    currentInstance.parent().parent().parent().addClass('opentest');
+    setTimeout(function () {
+        var copyTextOnButtonClickForNavLink = $(".copy-link-items-nav").html();
+        var revertText = $(".copy-click-text-revert").html();
+        if (clickedButtonId == "copyurlnavigation") {
+            revertText = copyTextOnButtonClickForNavLink;
+        }
+        $("#" + clickedButtonId).html(revertText);
+        $(".copylink").parent().parent().parent().removeClass('opentest');
+    }, 1000);
+})
+
+
+function FocusOnResultCountOnPageLoad(value) {
+    var countForProperty = $("#progressBarId").html();
+    var countForPropertyInteger = parseInt(countForProperty);
+
+    var countForLoadNewResults = $("#LoadNextButtonsId").html();
+    var countForLoadNewResultsInteger = parseInt(countForLoadNewResults);
+    if (countForPropertyInteger == 2) {
+        $(".paging-information").focus();
+        $("#progressBarId").html(0);
+    }
+    else if (value == 2) {
+
+        $(".paging-information").focus();
+    }
+    else {
+        $("#progressBarId").html(countForPropertyInteger + 1);
+    }
+}
+
+
+//$(".loadresults-button").click(function () {
+//    setTimeout(function () {
+//        FocusOnResultCountOnPageLoad(2);
+//    }, 10000);
+//})
+
+function setAriaPressedAttribueForFavourites() {
+    $(".m-card-group .c-card .favGridIcon, .listcard-container .custom_list_view_style .favlist").each(function () {
+        var progressBar = $(".progressbar-container:visible").length;
+        if (progressBar == 0) {
+            $(this).find(".favourite-inactive img").each(function () {
+                if (!$(this).is('[class*="hide-dom-element"]')) {
+                    var values = $(this).attr("id");
+                    var finalId = values.split("_");
+                    if (finalId[0] == "favoriteActiceIconImageSrcGrid" || finalId[0] == "favoriteActiceIconImageSrcList") {
+                        $(this).parent().parent().attr("aria-pressed", "true");
+                    }
+                }
+            });
+        }
+        else {
+            setFavouritesButton();
+        }
+    });
+}
+
+
+setFavouritesButton();
+
+function setFavouritesButton() {
+    var progressBar = $(".progressbar-container:visible").length;
+    if (progressBar == 1) {
+        setTimeout(function () {
+            setFavouritesButton();
+        }, 1000);
+    }
+    else {
+        setAriaPressedAttribueForFavourites();
+    }
+}
+
+$(".m-card-group .c-card .favGridIcon, .listcard-container .favlist").click(function () {
+    setTimeout(function () {
+        setFavouritesButton();
+    }, 1000);
+})
+
+
+// store last focus element for filter applied buttons when tab key is used
+$(".display-filteritem").click(function () {
+    GlobalLastFocusedElement = "filtersapplied";
+});
+
+function RenderAutoCompleteForEventLocations() {
+    var locationsarray = [];
+    if (GeoLocationLatitudeValue != null && GeoLocationLongitueValue !== null) {
+        if ($("#GeoLocationEventsList").length > 0) {
+            var defaultcontent = { value: "Events near current location", label: "Events near current location", disabled: true };
+            locationsarray.push(defaultcontent);
+            $("#GeoLocationEventsList li").each(function () {
+                locationsarray.push({ value: $(this).text(), label: $(this).text(), disabled: false });
+            });
+        } else {
+            var defaultcontent = { value: "No events near current location", label: "No events near current location", disabled: true };
+            locationsarray.push(defaultcontent);
+            $("#AllEventsLocationList li").each(function () {
+                locationsarray.push({ value: $(this).text(), label: $(this).text(), disabled: false });
+            });
+        }
+    } else {
+        $("#AllEventsLocationList li").each(function () {
+            locationsarray.push({ value: $(this).text(), label: $(this).text(), disabled: false });
+        });
+    }
+
+    TriggerAutoCompleteFunctionality(locationsarray);
+}
+
+function TriggerAutoCompleteFunctionality(sourcearray) {
+    // jquery-ui is used to build the auto complete
+    if ($('#EventsLocations').length > 0) {
+        $('#EventsLocations').autocomplete({
+            source: sourcearray,
+            minLength: 0,
+            scroll: true,
+            focus: function (event, ui) {
+                if (ui.item.disabled) {
+                    return false;
+                } else {
+                    return true;
+                }
+            },
+            select: function (event, ui) {
+                if (!ui.item.disabled) {
+                    $("#LocationDistanceContent").removeClass("hide-dom-element");
+                    TriggerLocationSearchEvent(ui.item.value);
+                } else {
+                    // deselect distance radio buttons, remove dynamic filter applied button and hide the content
+                    $("#LocationDistanceContent").addClass("hide-dom-element");
+                    $('input[name="distancepreference"]').prop("checked", false);
+                    if ($('button[name="' + GlobalDistanceRadioButtonNameConstant + '"]').length > 0) {
+                        $('button[name="' + GlobalDistanceRadioButtonNameConstant + '"]').remove();
+                    }
+                    return false;
+                }
+            },
+            response: function (event, ui) {
+                if (!ui.content.length) {
+                    var noResult = { value: "", label: "No event locations found", disabled: true };
+                    ui.content.push(noResult);
+                }
+            }
+        }).focus(function () {
+            $(this).autocomplete("search", "");
+        }).data("ui-autocomplete")._renderItem = function (ul, item) {
+            //Add the .ui-state-disabled class and don't wrap in <div> for default values
+            if (item.value === "Events near current location" || item.value === "No events near current location") {
+                return $('<li class="ui-state-disabled">').append("<div>" + item.label + '</div>').appendTo(ul);
+            } else {
+                return $("<li>")
+                    .append("<div>" + item.label + "</div>")
+                    .appendTo(ul);
+            }
+        };
+    }
+}
+
+$("#timerange-slider").slider({
+    range: true,
+    min: 0,
+    max: 1439,
+    values: [0, 1439],
+    slide: slideTime,
+    change: function (event) {
+        if (event.originalEvent) {
+            GlobalLastFocusedElement = event.originalEvent.target.id;
+            convertSliderValuesToTime($("#timerange-slider").slider("values", 0), $("#timerange-slider").slider("values", 1));
+            var starttime = $("#EventStartTime").val();
+            var endtime = $("#EventEndTime").val();
+            var selectedtimeperiod = starttime + "-" + endtime;
+            var selctedtimeperiodbtnid = (selectedtimeperiod).replace(/[^A-Z0-9]/ig, "") + "PreferenceApplied";
+
+            // build time querystring value to pass through url
+            var starttimequery = ConvertTo24HrsTime(starttime);
+            var endtimequery = ConvertTo24HrsTime(endtime);
+
+            CreateDynamicTimeIntervalFilterButton(selectedtimeperiod, selctedtimeperiodbtnid);
+            RemoveDynamicTimeIntervalFilterApplied(selctedtimeperiodbtnid);
+            AjaxCallForTimeFilterEventsData(GlobalStartTimeFilterNameContsant, starttimequery, GlobalEndTimeFilterNameContsant, endtimequery);
+
+            // add or delete filter values in local storage
+            if (starttimequery != "00:00" || endtimequery != "23:59") {
+                // clear localstorage starttime and endtime values beofre adding new values
+                localStorage.removeItem(EventStartTimeIntervalStartingValueLocalStorageKey);
+                localStorage.removeItem(EventStartTimeIntervalEndValueLocalStorageKey);
+
+                // add start time in local storage
+                var lsstarttimequerystring = GlobalStartTimeFilterNameContsant + "=" + starttimequery.replace(/\%26/g, "&");
+                AddFilterQueryToLocalStorage(EventStartTimeIntervalStartingValueLocalStorageKey, lsstarttimequerystring);
+                // add end time in local storage
+                var lsendtimequerystring = GlobalEndTimeFilterNameContsant + "=" + endtimequery.replace(/\%26/g, "&");
+                AddFilterQueryToLocalStorage(EventStartTimeIntervalEndValueLocalStorageKey, lsendtimequerystring);
+            } else {
+                // delete localstorage starttime and endtime values
+                localStorage.removeItem(EventStartTimeIntervalStartingValueLocalStorageKey);
+                localStorage.removeItem(EventStartTimeIntervalEndValueLocalStorageKey);
+            }
+        }
+    }
+});
+
+function slideTime(event, ui) {
+    var val0 = ui.values[0];
+    var val1 = ui.values[1];
+    convertSliderValuesToTime(val0, val1);
+}
+
+function convertSliderValuesToTime(val0, val1) {
+    var hours0 = Math.floor(val0 / 60);
+    var minutes0 = val0 - (hours0 * 60);
+    var hours1 = Math.floor(val1 / 60);
+    var minutes1 = val1 - (hours1 * 60);
+    startTime = getTimeWithMinutes(hours0, minutes0);
+    endTime = getTimeWithMinutes(hours1, minutes1);
+    $("#EventStartTime").val(startTime);
+    $("#EventEndTime").val(endTime);
+}
+
+$("#EventStartTime").change(function () {
+    GlobalLastFocusedElement = this.id;
+    var RegexForTimeValidation = new RegExp("^(1[0-2]|0?[1-9]):[0-5][0-9] (AM|PM)$", "i");
+    var starttime = $(this).val();
+    var endtime = $("#EventEndTime").val();
+    var starttimevalidation = RegexForTimeValidation.test(starttime);
+    var endtimevalidation = RegexForTimeValidation.test(endtime);
+    if (starttimevalidation && endtimevalidation) {
+        // build time querystring value to pass through url
+        var starttimequery = ConvertTo24HrsTime(starttime);
+        var endtimequery = ConvertTo24HrsTime(endtime);
+
+        // display 12 hrs time format on filter applied button
+        var selectedtimeperiod = starttime + "-" + endtime;
+        var selctedtimeperiodbtnid = (selectedtimeperiod).replace(/[^A-Z0-9]/ig, "") + "PreferenceApplied";
+
+        if (starttime.toLowerCase() !== "12:00 am" || endtime.toLowerCase() !== "11:59 pm") {
+            var starttimearray = starttimequery.split(":");
+            var setslidertime = parseInt((starttimearray[0] * 60) + parseInt(starttimearray[1]));
+            $("#timerange-slider").slider("values", 0, setslidertime);
+            CreateDynamicTimeIntervalFilterButton(selectedtimeperiod, selctedtimeperiodbtnid);
+            RemoveDynamicTimeIntervalFilterApplied(selctedtimeperiodbtnid);
+        } else {
+            $("#timerange-slider").slider({
+                range: true,
+                min: 0,
+                max: 1439,
+                values: [0, 1439]
+            });
+            // remove already available applied filter button
+            if ($('button[name="timeperiodfilterapplied"]').length > 0) {
+                $('button[name="timeperiodfilterapplied"]').remove();
+            }
+
+            // hide applied filters section when no filters are applied
+            if ($(".filterbtn-container").is(":empty")) {
+                $(".applied-filters").hide();
+            }
+        }
+        AjaxCallForTimeFilterEventsData(GlobalStartTimeFilterNameContsant, starttimequery, GlobalEndTimeFilterNameContsant, endtimequery);
+
+        // add or delete filter values in local storage
+        if (starttimequery != "00:00" || endtimequery != "23:59") {
+            // clear localstorage starttime and endtime values beofre adding new values
+            localStorage.removeItem(EventStartTimeIntervalStartingValueLocalStorageKey);
+            localStorage.removeItem(EventStartTimeIntervalEndValueLocalStorageKey);
+
+            // add start time in local storage
+            var lsstarttimequerystring = GlobalStartTimeFilterNameContsant + "=" + starttimequery.replace(/\%26/g, "&");
+            AddFilterQueryToLocalStorage(EventStartTimeIntervalStartingValueLocalStorageKey, lsstarttimequerystring);
+            // add end time in local storage
+            var lsendtimequerystring = GlobalEndTimeFilterNameContsant + "=" + endtimequery.replace(/\%26/g, "&");
+            AddFilterQueryToLocalStorage(EventStartTimeIntervalEndValueLocalStorageKey, lsendtimequerystring);
+        } else {
+            // delete localstorage starttime and endtime values
+            localStorage.removeItem(EventStartTimeIntervalStartingValueLocalStorageKey);
+            localStorage.removeItem(EventStartTimeIntervalEndValueLocalStorageKey);
+        }
+    }
+});
+
+$("#EventEndTime").change(function () {
+    GlobalLastFocusedElement = this.id;
+    var RegexForTimeValidation = new RegExp("^(1[0-2]|0?[1-9]):[0-5][0-9] (AM|PM)$", "i");
+    var starttime = $("#EventStartTime").val()
+    var endtime = $(this).val();
+    var starttimevalidation = RegexForTimeValidation.test(starttime);
+    var endtimevalidation = RegexForTimeValidation.test(endtime);
+    if (starttimevalidation && endtimevalidation) {
+        // build time querystring value to pass through url
+        var starttimequery = ConvertTo24HrsTime(starttime);
+        var endtimequery = ConvertTo24HrsTime(endtime);
+
+        // display 12 hrs time format on filter applied button
+        var selectedtimeperiod = starttime + "-" + endtime;
+        var selctedtimeperiodbtnid = (selectedtimeperiod).replace(/[^A-Z0-9]/ig, "") + "PreferenceApplied";
+
+        if (starttime.toLowerCase() !== "12:00 am" || endtime.toLowerCase() !== "11:59 pm") {
+            var endtimearray = endtimequery.split(":");
+            var setslidertime = parseInt((endtimearray[0] * 60) + parseInt(endtimearray[1]));
+            $("#timerange-slider").slider("values", 1, setslidertime);
+            CreateDynamicTimeIntervalFilterButton(selectedtimeperiod, selctedtimeperiodbtnid);
+            RemoveDynamicTimeIntervalFilterApplied(selctedtimeperiodbtnid);
+        } else {
+            $("#timerange-slider").slider({
+                range: true,
+                min: 0,
+                max: 1439,
+                values: [0, 1439]
+            });
+            // remove already available applied filter button
+            if ($('button[name="timeperiodfilterapplied"]').length > 0) {
+                $('button[name="timeperiodfilterapplied"]').remove();
+            }
+
+            // hide applied filters section when no filters are applied
+            if ($(".filterbtn-container").is(":empty")) {
+                $(".applied-filters").hide();
+            }
+        }
+        AjaxCallForTimeFilterEventsData(GlobalStartTimeFilterNameContsant, starttimequery, GlobalEndTimeFilterNameContsant, endtimequery);
+
+        // add or delete filter values in local storage
+        if (starttimequery != "00:00" || endtimequery != "23:59") {
+            // clear localstorage starttime and endtime values beofre adding new values
+            localStorage.removeItem(EventStartTimeIntervalStartingValueLocalStorageKey);
+            localStorage.removeItem(EventStartTimeIntervalEndValueLocalStorageKey);
+
+            // add start time in local storage
+            var lsstarttimequerystring = GlobalStartTimeFilterNameContsant + "=" + starttimequery.replace(/\%26/g, "&");
+            AddFilterQueryToLocalStorage(EventStartTimeIntervalStartingValueLocalStorageKey, lsstarttimequerystring);
+            // add end time in local storage
+            var lsendtimequerystring = GlobalEndTimeFilterNameContsant + "=" + endtimequery.replace(/\%26/g, "&");
+            AddFilterQueryToLocalStorage(EventStartTimeIntervalEndValueLocalStorageKey, lsendtimequerystring);
+        } else {
+            // delete localstorage starttime and endtime values
+            localStorage.removeItem(EventStartTimeIntervalStartingValueLocalStorageKey);
+            localStorage.removeItem(EventStartTimeIntervalEndValueLocalStorageKey);
+        }
+    }
+});
+
+// expandall button functionality for filter menu
+$("#ExpandAllFilters").on("click", function () {
+    $("#VirtualTraingProgramFilterService").collapse('show');
+    $("#VirtualTraingProgramFilterButton").attr("aria-expanded", "true");
+    $("#ProductFilterService").collapse('show');
+    $("#ProductFilterArrow").removeClass("arrow-down");
+    $("#ProductFilterArrow").addClass("arrow-up");
+    $("#RoleFilterService").collapse('show');
+    $("#RoleFilterChevron").removeClass("arrow-down");
+    $("#RoleFilterChevron").addClass("arrow-up");
+    $("#IndustryFilterService").collapse('show');
+    $("#IndustryFilterChevron").removeClass("arrow-down");
+    $("#IndustryFilterChevron").addClass("arrow-up");
+    $("#EventLangPreferenceService").collapse('show');
+    $("#EventLanguagePreferenceArrow").removeClass("arrow-down");
+    $("#EventLanguagePreferenceArrow").addClass("arrow-up");
+    $("#EventdeliveryLangPreferenceService").collapse('show');
+    $("#EventdeliveryLanguagePreferenceArrow").removeClass("arrow-down");
+    $("#EventdeliveryLanguagePreferenceArrow").addClass("arrow-up");
+    $("#EventsubtitleLangPreferenceService").collapse('show');
+    $("#EventsubtitleLanguagePreferenceArrow").removeClass("arrow-down");
+    $("#EventsubtitleLanguagePreferenceArrow").addClass("arrow-up");
+    $("#EventTimimgPreferenceService").collapse('show');
+    $("#EventTimePreferenceChevron").removeClass("arrow-down");
+    $("#EventTimePreferenceChevron").addClass("arrow-up");
+    $("#EventFormatPreferenceService").collapse('show');
+    $("#EventFormatPreferenceChevron").removeClass("arrow-down");
+    $("#EventFormatPreferenceChevron").addClass("arrow-up");
+    $("#EventLocationPreferenceService").collapse('show');
+    $("#EventLocationPreferenceChevron").removeClass("arrow-down");
+    $("#EventLocationPreferenceChevron").addClass("arrow-up");
+    $("#ExpandAllFilters").addClass("hide-dom-element");
+    $("#CollapseAllFilters").removeClass("hide-dom-element");
+    IsVirtulTrainingDayProramsFilterExpaned = true;
+    IsProductFilterExpaned = true;
+    IsRoleFilterExpaned = true;
+    IsIndustryFilterExpaned = true;
+    IsEventLanguageFilterExpaned = true;
+    IsEventdeliveryLanguageFilterExpaned = true;
+    IsEventsubtitleLanguageFilterExpaned = true;
+    IsEventStartTimeFilterExpaned = true;
+    IsEventFormatFilterExpaned = true;
+    IsEventLocationFilterExpaned = true;
+    IsEventSwitchTimeZoneFilterExpaned = true;
+});
+
+// collapseall button functionality for filter menu
+$("#CollapseAllFilters").click(function () {
+    $("#VirtualTraingProgramFilterService").collapse('hide');
+    $("#VirtualTraingProgramFilterButton").attr("aria-expanded", "false");
+    $("#ProductFilterService").collapse('hide');
+    $("#ProductFilterArrow").removeClass("arrow-up");
+    $("#ProductFilterArrow").addClass("arrow-down");
+    $("#RoleFilterService").collapse('hide');
+    $("#RoleFilterChevron").removeClass("arrow-up");
+    $("#RoleFilterChevron").addClass("arrow-down");
+    $("#IndustryFilterService").collapse('hide');
+    $("#IndustryFilterChevron").removeClass("arrow-up");
+    $("#IndustryFilterChevron").addClass("arrow-down");
+    $("#EventLangPreferenceService").collapse('hide');
+    $("#EventLanguagePreferenceArrow").removeClass("arrow-up");
+    $("#EventLanguagePreferenceArrow").addClass("arrow-down");
+    $("#EventdeliveryLangPreferenceService").collapse('hide');
+    $("#EventdeliveryLanguagePreferenceArrow").removeClass("arrow-up");
+    $("#EventdeliveryLanguagePreferenceArrow").addClass("arrow-down");
+    $("#EventsubtitleLangPreferenceService").collapse('hide');
+    $("#EventsubtitleLanguagePreferenceArrow").removeClass("arrow-up");
+    $("#EventsubtitleLanguagePreferenceArrow").addClass("arrow-down");
+    $("#EventTimimgPreferenceService").collapse('hide');
+    $("#EventTimePreferenceChevron").removeClass("arrow-up");
+    $("#EventTimePreferenceChevron").addClass("arrow-down");
+    $("#EventFormatPreferenceService").collapse('hide');
+    $("#EventFormatPreferenceChevron").removeClass("arrow-up");
+    $("#EventFormatPreferenceChevron").addClass("arrow-down");
+    $("#EventLocationPreferenceService").collapse('hide');
+    $("#EventLocationPreferenceChevron").removeClass("arrow-up");
+    $("#EventLocationPreferenceChevron").addClass("arrow-down");
+    $("#ExpandAllFilters").removeClass("hide-dom-element");
+    $("#CollapseAllFilters").addClass("hide-dom-element");
+    IsVirtulTrainingDayProramsFilterExpaned = false;
+    IsProductFilterExpaned = false;
+    IsRoleFilterExpaned = false;
+    IsIndustryFilterExpaned = false;
+    IsEventLanguageFilterExpaned = false;
+    IsEventdeliveryLanguageFilterExpaned = false;
+    IsEventsubtitleLanguageFilterExpaned = false;
+    IsEventStartTimeFilterExpaned = false;
+    IsEventFormatFilterExpaned = false;
+    IsEventLocationFilterExpaned = false;
+    IsEventSwitchTimeZoneFilterExpaned = false;
+});
+
+// check the state of all collspe items and display expandall, collapsell buttons accordingly
+function CheckFilterAccordiansState(filterwithactiveonclick) {
+
+    if ($("#ProductFilterService").length > 0) {
+        // jquery is retruning previus state of collspse item when it is clicked
+        // so a validation is made for onclicked item and bool value is reversed to get current state
+        if (filterwithactiveonclick === GlobalProductFilterNameContsant) {
+            var isproductexpanded = !$("#ProductFilterService").is(":visible");
+        } else {
+            var isproductexpanded = $("#ProductFilterService").is(":visible");
+        }
+        if (filterwithactiveonclick === GlobalScenarioFilterNameContsant) {
+            var isscenarioexpanded = !$("#VirtualTraingProgramFilterService").is(":visible");
+        } else {
+            var isscenarioexpanded = $("#VirtualTraingProgramFilterService").is(":visible");
+        }
+        if (filterwithactiveonclick === GlobalRoleFilterNameContsant) {
+            var isroleexpanded = !$("#RoleFilterService").is(":visible");
+        } else {
+            var isroleexpanded = $("#RoleFilterService").is(":visible");
+        }
+        if (filterwithactiveonclick === GlobalIndustryFilterNameContsant) {
+            var isindustryexpanded = !$("#IndustryFilterService").is(":visible");
+        } else {
+            var isindustryexpanded = $("#IndustryFilterService").is(":visible");
+        }
+        if (filterwithactiveonclick === GlobalLangugeFilterNameContsant) {
+            var islanguageexpanded = !$("#EventLangPreferenceService").is(":visible");
+        } else {
+            var islanguageexpanded = $("#EventLangPreferenceService").is(":visible");
+        }
+        if (filterwithactiveonclick === GlobaldeliveryLangugeFilterNameContsant) {
+            var isdeliverylanguageexpanded = !$("#EventdeliveryLangPreferenceService").is(":visible");
+        } else {
+            var isdeliverylanguageexpanded = $("#EventdeliveryLangPreferenceService").is(":visible");
+        }
+        if (filterwithactiveonclick === GlobalsubtitleLangugeFilterNameContsant) {
+            var issubtitlelanguageexpanded = !$("#EventsubtitleLangPreferenceService").is(":visible");
+        } else {
+            var issubtitlelanguageexpanded = $("#EventsubtitleLangPreferenceService").is(":visible");
+        }
+        if (filterwithactiveonclick === "time") {
+            var istimeexpanded = !$("#EventTimimgPreferenceService").is(":visible");
+        } else {
+            var istimeexpanded = $("#EventTimimgPreferenceService").is(":visible");
+        }
+        if (filterwithactiveonclick === GlobalFormatFilterNameContsant) {
+            var isformatexpanded = !$("#EventFormatPreferenceService").is(":visible");
+        } else {
+            var isformatexpanded = $("#EventFormatPreferenceService").is(":visible");
+        }
+        if (filterwithactiveonclick === GlobalLocationFilterNameContsant) {
+            var islocationexpanded = !$("#EventLocationPreferenceService").is(":visible");
+        } else {
+            var islocationexpanded = $("#EventLocationPreferenceService").is(":visible");
+        }
+
+        if (isproductexpanded && isscenarioexpanded && isroleexpanded && isindustryexpanded && islanguageexpanded && isdeliverylanguageexpanded && issubtitlelanguageexpanded && istimeexpanded &&
+            isformatexpanded && islocationexpanded) {
+            $("#ExpandAllFilters").addClass("hide-dom-element");
+            $("#CollapseAllFilters").removeClass("hide-dom-element");
+        }
+
+        if (!isproductexpanded && !isscenarioexpanded && !isroleexpanded && !isindustryexpanded && !islanguageexpanded && isdeliverylanguageexpanded && issubtitlelanguageexpanded && !istimeexpanded &&
+            !isformatexpanded && !islocationexpanded) {
+            $("#ExpandAllFilters").removeClass("hide-dom-element");
+            $("#CollapseAllFilters").addClass("hide-dom-element");
+        }
+    } else {
+        // jquery is retruning previus state of collspse item when it is clicked
+        // so a validation is made for onclicked item and bool value is reversed to get current state
+        if (filterwithactiveonclick === GlobalScenarioFilterNameContsant) {
+            var isscenarioexpanded = !$("#VirtualTraingProgramFilterService").is(":visible");
+        } else {
+            var isscenarioexpanded = $("#VirtualTraingProgramFilterService").is(":visible");
+        }
+        if (filterwithactiveonclick === GlobalRoleFilterNameContsant) {
+            var isroleexpanded = !$("#RoleFilterService").is(":visible");
+        } else {
+            var isroleexpanded = $("#RoleFilterService").is(":visible");
+        }
+        if (filterwithactiveonclick === GlobalIndustryFilterNameContsant) {
+            var isindustryexpanded = !$("#IndustryFilterService").is(":visible");
+        } else {
+            var isindustryexpanded = $("#IndustryFilterService").is(":visible");
+        }
+        if (filterwithactiveonclick === GlobalLangugeFilterNameContsant) {
+            var islanguageexpanded = !$("#EventLangPreferenceService").is(":visible");
+        } else {
+            var islanguageexpanded = $("#EventLangPreferenceService").is(":visible");
+        }
+        if (filterwithactiveonclick === GlobaldeliveryLangugeFilterNameContsant) {
+            var isdeliverylanguageexpanded = !$("#EventdeliveryLangPreferenceService").is(":visible");
+        } else {
+            var isdeliverylanguageexpanded = $("#EventdeliveryLangPreferenceService").is(":visible");
+        }
+        if (filterwithactiveonclick === GlobalsubtitleLangugeFilterNameContsant) {
+            var issubtitlelanguageexpanded = !$("#EventsubtitleLangPreferenceService").is(":visible");
+        } else {
+            var issubtitlelanguageexpanded = $("#EventsubtitleLangPreferenceService").is(":visible");
+        }
+        if (filterwithactiveonclick === "time") {
+            var istimeexpanded = !$("#EventTimimgPreferenceService").is(":visible");
+        } else {
+            var istimeexpanded = $("#EventTimimgPreferenceService").is(":visible");
+        }
+        if (filterwithactiveonclick === GlobalFormatFilterNameContsant) {
+            var isformatexpanded = !$("#EventFormatPreferenceService").is(":visible");
+        } else {
+            var isformatexpanded = $("#EventFormatPreferenceService").is(":visible");
+        }
+        if (filterwithactiveonclick === GlobalLocationFilterNameContsant) {
+            var islocationexpanded = !$("#EventLocationPreferenceService").is(":visible");
+        } else {
+            var islocationexpanded = $("#EventLocationPreferenceService").is(":visible");
+        }
+
+        if (isscenarioexpanded && isroleexpanded && isindustryexpanded && islanguageexpanded && isdeliverylanguageexpanded && issubtitlelanguageexpanded && istimeexpanded &&
+            isformatexpanded && islocationexpanded) {
+            $("#ExpandAllFilters").addClass("hide-dom-element");
+            $("#CollapseAllFilters").removeClass("hide-dom-element");
+        }
+
+        if (!isscenarioexpanded && !isroleexpanded && !isindustryexpanded && !islanguageexpanded && isdeliverylanguageexpanded && issubtitlelanguageexpanded && !istimeexpanded &&
+            !isformatexpanded && !islocationexpanded) {
+            $("#ExpandAllFilters").removeClass("hide-dom-element");
+            $("#CollapseAllFilters").addClass("hide-dom-element");
+        }
+    }
+}
+
+$("#VirtualTraingProgramFilterButton").click(function () {
+    $("#VirtualTraingProgramFilterService").on('show.bs.collapse', function () {
+        IsVirtulTrainingDayProramsFilterExpaned = true;
+    });
+    $("#VirtualTraingProgramFilterService").on('hide.bs.collapse', function () {
+        IsVirtulTrainingDayProramsFilterExpaned = false;
+    });
+    CheckFilterAccordiansState(GlobalScenarioFilterNameContsant);
+});
+
+$("#ProductFilterButton").on("click", function () {
+    $("#ProductFilterService").on('show.bs.collapse', function () {
+        $("#ProductFilterArrow").removeClass("arrow-down");
+        $("#ProductFilterArrow").addClass("arrow-up");
+        IsProductFilterExpaned = true;
+    });
+    $("#ProductFilterService").on('hide.bs.collapse', function () {
+        $("#ProductFilterArrow").removeClass("arrow-up");
+        $("#ProductFilterArrow").addClass("arrow-down");
+        IsProductFilterExpaned = false;
+    });
+
+    CheckFilterAccordiansState(GlobalProductFilterNameContsant);
+});
+
+$("#RoleFilterButton").on("click", function () {
+    $("#RoleFilterService").on('show.bs.collapse', function () {
+        $("#RoleFilterChevron").removeClass("arrow-down");
+        $("#RoleFilterChevron").addClass("arrow-up");
+        IsRoleFilterExpaned = true;
+    });
+    $("#RoleFilterService").on('hide.bs.collapse', function () {
+        $("#RoleFilterChevron").removeClass("arrow-up");
+        $("#RoleFilterChevron").addClass("arrow-down");
+        IsRoleFilterExpaned = false;
+    });
+
+    CheckFilterAccordiansState(GlobalRoleFilterNameContsant);
+});
+
+$("#IndustryFilterButton").click(function () {
+    $("#IndustryFilterService").on('show.bs.collapse', function () {
+        $("#IndustryFilterChevron").removeClass("arrow-down");
+        $("#IndustryFilterChevron").addClass("arrow-up");
+        IsIndustryFilterExpaned = true;
+    });
+    $("#IndustryFilterService").on('hide.bs.collapse', function () {
+        $("#IndustryFilterChevron").removeClass("arrow-up");
+        $("#IndustryFilterChevron").addClass("arrow-down");
+        IsIndustryFilterExpaned = false;
+    });
+
+    CheckFilterAccordiansState(GlobalIndustryFilterNameContsant);
+});
+
+$("#EventLanguagePreferenceButton").click(function () {
+    $("#EventLangPreferenceService").on('show.bs.collapse', function () {
+        $("#EventLanguagePreferenceArrow").removeClass("arrow-down");
+        $("#EventLanguagePreferenceArrow").addClass("arrow-up");
+        IsEventLanguageFilterExpaned = true;
+    });
+    $("#EventLangPreferenceService").on('hide.bs.collapse', function () {
+        $("#EventLanguagePreferenceArrow").removeClass("arrow-up");
+        $("#EventLanguagePreferenceArrow").addClass("arrow-down");
+        IsEventLanguageFilterExpaned = false;
+    });
+
+    CheckFilterAccordiansState(GlobalLangugeFilterNameContsant);
+});
+
+$("#EventdeliveryLanguagePreferenceButton").click(function () {
+    $("#EventdeliveryLangPreferenceService").on('show.bs.collapse', function () {
+        $("#EventdeliveryLanguagePreferenceArrow").removeClass("arrow-down");
+        $("#EventdeliveryLanguagePreferenceArrow").addClass("arrow-up");
+        IsEventdeliveryLanguageFilterExpaned = true;
+    });
+    $("#EventdeliveryLangPreferenceService").on('hide.bs.collapse', function () {
+        $("#EventdeliveryLanguagePreferenceArrow").removeClass("arrow-up");
+        $("#EventdeliveryLanguagePreferenceArrow").addClass("arrow-down");
+        IsEventdeliveryLanguageFilterExpaned = false;
+    });
+
+    CheckFilterAccordiansState(GlobaldeliveryLangugeFilterNameContsant);
+});
+
+$("#EventsubtitleLanguagePreferenceButton").click(function () {
+    $("#EventsubtitleLangPreferenceService").on('show.bs.collapse', function () {
+        $("#EventsubtitleLanguagePreferenceArrow").removeClass("arrow-down");
+        $("#EventsubtitleLanguagePreferenceArrow").addClass("arrow-up");
+        IsEventsubtitleLanguageFilterExpaned = true;
+    });
+    $("#EventsubtitleLangPreferenceService").on('hide.bs.collapse', function () {
+        $("#EventsubtitleLanguagePreferenceArrow").removeClass("arrow-up");
+        $("#EventsubtitleLanguagePreferenceArrow").addClass("arrow-down");
+        IsEventsubtitleLanguageFilterExpaned = false;
+    });
+
+    CheckFilterAccordiansState(GlobalsubtitleLangugeFilterNameContsant);
+});
+
+$("#EventTimingPreferenceButton").click(function () {
+    $("#EventTimimgPreferenceService").on('show.bs.collapse', function () {
+        $("#EventTimePreferenceChevron").removeClass("arrow-down");
+        $("#EventTimePreferenceChevron").addClass("arrow-up");
+        IsEventStartTimeFilterExpaned = true;
+    });
+    $("#EventTimimgPreferenceService").on('hide.bs.collapse', function () {
+        $("#EventTimePreferenceChevron").removeClass("arrow-up");
+        $("#EventTimePreferenceChevron").addClass("arrow-down");
+        IsEventStartTimeFilterExpaned = false;
+    });
+
+    CheckFilterAccordiansState("time");
+});
+
+$("#EventFormatPreferenceButton").click(function () {
+    $("#EventFormatPreferenceService").on('show.bs.collapse', function () {
+        $("#EventFormatPreferenceChevron").removeClass("arrow-down");
+        $("#EventFormatPreferenceChevron").addClass("arrow-up");
+        IsEventFormatFilterExpaned = true;
+    });
+    $("#EventFormatPreferenceService").on('hide.bs.collapse', function () {
+        $("#EventFormatPreferenceChevron").removeClass("arrow-up");
+        $("#EventFormatPreferenceChevron").addClass("arrow-down");
+        IsEventFormatFilterExpaned = false;
+    });
+
+    CheckFilterAccordiansState(GlobalFormatFilterNameContsant);
+});
+
+$("#EventLocationPreferenceButton").click(function () {
+    $("#EventLocationPreferenceService").on('show.bs.collapse', function () {
+        $("#EventLocationPreferenceChevron").removeClass("arrow-down");
+        $("#EventLocationPreferenceChevron").addClass("arrow-up");
+        IsEventLocationFilterExpaned = true;
+    });
+    $("#EventLocationPreferenceService").on('hide.bs.collapse', function () {
+        $("#EventLocationPreferenceChevron").removeClass("arrow-up");
+        $("#EventLocationPreferenceChevron").addClass("arrow-down");
+        IsEventLocationFilterExpaned = false;
+    });
+
+    CheckFilterAccordiansState(GlobalLocationFilterNameContsant);
+});
+
+function RemoveAppliedFilters(filtername, inputvalue, appliedfilterbtnid, filterlocalstoragekey) {
+    if (filtername === GlobalLangugeFilterNameContsant) {
+        var inputcontrolid = inputvalue.replace(/[0-9`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '').replace(/ /g, '') + "languageinputid";
+    } else {
+        var inputcontrolid = inputvalue.replace(/[^A-Z0-9]/ig, "");
+    }
+    if (filtername === GlobaldeliveryLangugeFilterNameContsant) {
+        var inputcontrolid = inputvalue.replace(/[0-9`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '').replace(/ /g, '') + "deliverylanguageinputid";
+    } else {
+        var inputcontrolid = inputvalue.replace(/[^A-Z0-9]/ig, "");
+    }
+    if (filtername === GlobalsubtitleLangugeFilterNameContsant) {
+        var inputcontrolid = inputvalue.replace(/[0-9`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '').replace(/ /g, '') + "subtitlelanguageinputid";
+    } else {
+        var inputcontrolid = inputvalue.replace(/[^A-Z0-9]/ig, "");
+    }
+
+    if (filtername === GlobalLangugeFilterNameContsant) {
+        var inputresponsivecontrolid = inputvalue.replace(/[0-9`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '').replace(/ /g, '') + "responsivelanguageinputid";
+    } else {
+        var inputresponsivecontrolid = inputvalue.replace(/[^A-Z0-9]/ig, "") + "ResponsiveFilterItem";
+    }
+    if (filtername === GlobaldeliveryLangugeFilterNameContsant) {
+        var inputresponsivecontrolid = inputvalue.replace(/[0-9`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '').replace(/ /g, '') + "responsivedeliverylanguageinputid";
+    } else {
+        var inputresponsivecontrolid = inputvalue.replace(/[^A-Z0-9]/ig, "") + "ResponsivedeliveryFilterItem";
+    }
+    if (filtername === GlobalsubtitleLangugeFilterNameContsant) {
+        var inputresponsivecontrolid = inputvalue.replace(/[0-9`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '').replace(/ /g, '') + "responsivesubtitlelanguageinputid";
+    } else {
+        var inputresponsivecontrolid = inputvalue.replace(/[^A-Z0-9]/ig, "") + "ResponsivesubtitleFilterItem";
+    }
+
+    $("body").on("click", "#" + appliedfilterbtnid, function () {
+        if (filtername == 'language' || filtername == 'subtitlelanguage' || filtername == 'deliverylanguage') {
+            $("#" + inputresponsivecontrolid).prop("checked", false);
+        }
+        else {
+            if ($("#" + inputcontrolid).is(":checkbox")) {
+                $("#" + inputcontrolid).prop("checked", false);
+            }
+            if ($("#" + inputcontrolid).is(":radio")) {
+                $("#" + inputcontrolid).prop("checked", false);
+            }
+        }
+        $("#" + appliedfilterbtnid).remove();
+
+        // hide applied filters section when no filters are applied
+        if ($(".filterbtn-container").is(":empty")) {
+            $(".applied-filters").hide();
+        }
+
+        // delete filter value from localstorage
+        if (filterlocalstoragekey != null) {
+            var lsdeletequerystring = filtername + "=" + inputvalue.replace(/\&/g, "%26");
+            DeleteFilterQueryFromLocalStorage(filterlocalstoragekey, lsdeletequerystring);
+        }
+
+        AjaxCallForEventsData(filtername, inputvalue);
+    });
+}
+
+// trigger click event for product filter checkboxes when enter key is pressed
+$('input[name="product"]').keypress(function (e) {
+    var key = e.keyCode ? e.keyCode : e.which;
+    if (key == 13)  // the enter key code
+    {
+        $(this).trigger('click');
+        return false;
+    }
+});
+
+// trigger click event for scenarioheading filter checkboxes when enter key is pressed
+$('input[name="scenarioheading"]').keypress(function (e) {
+    var key = e.keyCode ? e.keyCode : e.which;
+    if (key == 13)  // the enter key code
+    {
+        $(this).trigger('click');
+        return false;
+    }
+});
+
+// trigger click event for scenariosubheading filter checkboxes when enter key is pressed
+$('input[name="scenariosubheading"]').keypress(function (e) {
+    var key = e.keyCode ? e.keyCode : e.which;
+    if (key == 13)  // the enter key code
+    {
+        $(this).trigger('click');
+        return false;
+    }
+});
+
+// trigger click event for role filter checkboxes when enter key is pressed
+$('input[name="role"]').keypress(function (e) {
+    var key = e.keyCode ? e.keyCode : e.which;
+    if (key == 13)  // the enter key code
+    {
+        $(this).trigger('click');
+        return false;
+    }
+});
+
+// trigger click event for industry filter checkboxes when enter key is pressed
+$('input[name="industry"]').keypress(function (e) {
+    var key = e.keyCode ? e.keyCode : e.which;
+    if (key == 13)  // the enter key code
+    {
+        $(this).trigger('click');
+        return false;
+    }
+});
+
+// trigger click event for language filter checkboxes when enter key is pressed
+$('input[name="language"]').keypress(function (e) {
+    var key = e.keyCode ? e.keyCode : e.which;
+    if (key == 13)  // the enter key code
+    {
+        $(this).trigger('click');
+        return false;
+    }
+});
+
+// trigger click event for deliverylanguage filter checkboxes when enter key is pressed
+$('input[name="deliverylanguage"]').keypress(function (e) {
+    var key = e.keyCode ? e.keyCode : e.which;
+    if (key == 13)  // the enter key code
+    {
+        $(this).trigger('click');
+        return false;
+    }
+});
+
+// trigger click event for subtitlelanguage filter checkboxes when enter key is pressed
+$('input[name="subtitlelanguage"]').keypress(function (e) {
+    var key = e.keyCode ? e.keyCode : e.which;
+    if (key == 13)  // the enter key code
+    {
+        $(this).trigger('click');
+        return false;
+    }
+});
+
+// trigger click event for format filter checkboxes when enter key is pressed
+$('input[name="format"]').keypress(function (e) {
+    var key = e.keyCode ? e.keyCode : e.which;
+    if (key == 13)  // the enter key code
+    {
+        $(this).trigger('click');
+        return false;
+    }
+});
+
+// trigger click event for location distance filter radio buttons when enter key is pressed
+$('input[name="distancepreference"]').keypress(function (e) {
+    var key = e.keyCode ? e.keyCode : e.which;
+    if (key == 13)  // the enter key code
+    {
+        $(this).trigger('click');
+        return false;
+    }
+});
+
+// trigger click event for showinlocal time filter checkboxes when enter key is pressed
+$('#SwitchEventTimeZoneToUserLocale').keypress(function (e) {
+    var key = e.keyCode ? e.keyCode : e.which;
+    if (key == 13)  // the enter key code
+    {
+        $(this).trigger('click');
+        return false;
+    }
+});
+
+// trigger click event to clear product filter when enter key is pressed
+$("#ClearProductFilter").keypress(function (e) {
+    var key = e.keyCode ? e.keyCode : e.which;
+    if (key == 13)  // the enter key code
+    {
+        $(this).trigger('click');
+        return false;
+    }
+});
+
+// trigger click event to clear language filter when enter key is pressed
+$("#ClearEventLanguage").keypress(function (e) {
+    var key = e.keyCode ? e.keyCode : e.which;
+    if (key == 13)  // the enter key code
+    {
+        $(this).trigger('click');
+        return false;
+    }
+});
+// trigger click event to clear delivery language filter when enter key is pressed
+$("#ClearEventdeliveryLanguage").keypress(function (e) {
+    var key = e.keyCode ? e.keyCode : e.which;
+    if (key == 13)  // the enter key code
+    {
+        $(this).trigger('click');
+        return false;
+    }
+});
+// trigger click event to clear subtitle language filter when enter key is pressed
+$("#ClearEventsubtitleLanguage").keypress(function (e) {
+    var key = e.keyCode ? e.keyCode : e.which;
+    if (key == 13)  // the enter key code
+    {
+        $(this).trigger('click');
+        return false;
+    }
+});
+
+// trigger click event to clear location filter when enter key is pressed
+$("#ClearEventsLocationField").keypress(function (e) {
+    var key = e.keyCode ? e.keyCode : e.which;
+    if (key == 13)  // the enter key code
+    {
+        $(this).trigger('click');
+        return false;
+    }
+});
+
+$('input[name="product"]').on('click', function () {
+    GlobalLastFocusedElement = this.id;
+    var filtername = this.name;
+    var selectedproduct = $(this).val();
+    var filterButtonText = $(this).siblings("span.sidebar-item-name").text()
+    var selectedproductbtnid = (GlobalProductFilterNameContsant + selectedproduct).replace(/[^A-Z0-9]/ig, "") + "FilterApplied";
+    if ($(this).is(":checked")) {
+        CreateDyanmicAppliedFilterButtons(filterButtonText, selectedproductbtnid);
+        AjaxCallForEventsData(filtername, selectedproduct);
+
+        // check if the remove applied filter is already applied during the page load for this selected value.
+        // if already applied skip this remove functionality or else apply it
+        var isremovealreadyexists = false;
+        $.each(ProductArrayForDefaultRemoveFilterAppliedFromURL, function (index, value) {
+            if (value == selectedproduct) {
+                isremovealreadyexists = true;
+                return false;
+            }
+        });
+        if (!isremovealreadyexists) {
+            if (ProductArrayForSelectedFilterValues.length === 0) {
+                RemoveAppliedFilters(filtername, selectedproduct, selectedproductbtnid, null);
+                ProductArrayForSelectedFilterValues.push(selectedproduct);
+            } else {
+                var isremovefilteralreadyranforthisfiltervalue = false;
+                $.each(ProductArrayForSelectedFilterValues, function (selectedfiltervalueindex, selectedfiltervalue) {
+                    if (selectedproduct === selectedfiltervalue) {
+                        isremovefilteralreadyranforthisfiltervalue = true;
+                        return false;
+                    }
+                });
+                if (!isremovefilteralreadyranforthisfiltervalue) {
+                    RemoveAppliedFilters(filtername, selectedproduct, selectedproductbtnid, null);
+                    ProductArrayForSelectedFilterValues.push(selectedproduct);
+                }
+            }
+        }
+        // show clear product filters button if no filters are applied
+        $('#ClearProductFilter').show();
+
+        // show clear clear all filters button if no filters are applied
+        $('#ClearAllFilters').show();
+    } else {
+        // hide clear product filters button if no filters are applied
+        if ($('input[name="product"]:checked').length == 0) {
+            $('#ClearProductFilter').hide();
+        }
+
+        // hide clear all button if no product filter is selected
+        if ($('input[name="scenarioheading"]:checked').length == 0 && $('input[name="scenariosubheading"]:checked').length == 0 && $('input[name="product"]:checked').length == 0 &&
+            $('input[name="role"]:checked').length == 0 && $('input[name="industry"]:checked').length == 0 && $("#FavDataSpan").text() === "0") {
+            $('#ClearAllFilters').hide();
+        }
+
+        if ($("#" + selectedproductbtnid).length > 0) {
+            AjaxCallForEventsData(filtername, selectedproduct);
+            $("#" + selectedproductbtnid).remove();
+
+            // hide applied filters section when no filters are applied
+            if ($(".filterbtn-container").is(":empty")) {
+                $(".applied-filters").hide();
+            }
+        }
+    }
+});
+
+$('#ClearProductFilter').on('click', function () {
+    GlobalLastFocusedElement = "ProductFilterLabel";
+    var eventsURL = decodeURI(window.location.href);
+
+    var islistcardview = false;
+    if ($("#EventListCardToggleButton").hasClass("listcard-togglebtn-active")) {
+        islistcardview = true;
+    }
+
+    if (eventsURL.indexOf("?") > -1) {
+        var urloriginandpatharray = eventsURL.split("?");
+        var urlpatharray = urloriginandpatharray[1].split("&");
+        for (var i = parseInt(0); i < urlpatharray.length; i++) {
+            if (urlpatharray[i].indexOf(GlobalProductFilterNameContsant + "=") > -1) {
+                // remove filter applied button for url params
+                var paramvaluearray = urlpatharray[i].split("=");
+                var paramvalue = paramvaluearray[1];
+                var paramfilterappliedbtnid = (GlobalProductFilterNameContsant + paramvalue).replace(/[^A-Z0-9]/ig, "") + "FilterApplied";
+                if ($("#" + paramfilterappliedbtnid).length > 0) {
+                    $("#" + paramfilterappliedbtnid).remove();
+                }
+
+                urlpatharray.splice(i, 1);
+                i--;
+            }
+        }
+        urloriginandpatharray[1] = urlpatharray.join("&");
+        if (urloriginandpatharray[1].length > 0) {
+            var ajaxeventsurl = encodeURI(urloriginandpatharray.join("?"));
+        } else {
+            if (urloriginandpatharray.length > 2) {
+                var newfilteredurloriginandpatharray = RemoveNullorEmptyElementsFromArray(urloriginandpatharray);
+                var ajaxeventsurl = encodeURI(newfilteredurloriginandpatharray.join("?"));
+            } else {
+                var ajaxeventsurl = encodeURI(urloriginandpatharray[0]);
+            }
+        }
+
+        // make LangugeFilterApplied to false only if all languge filters are removed
+        if (ajaxeventsurl.indexOf(GlobalLangugeFilterNameContsant + "=") > -1) {
+            LangugeFilterApplied = true;
+        } else {
+            LangugeFilterApplied = false;
+        }
+
+        window.history.pushState({}, null, ajaxeventsurl);
+        $("#ProgressBarContainer").removeClass("hide-dom-element");
+        $.ajax({
+            type: "GET",
+            url: ajaxeventsurl,
+            data: { returnPartialview: true, enableListCardView: islistcardview, latitudeValue: GeoLocationLatitudeValue, longitudeValue: GeoLocationLongitueValue, isLangugeFilterApplied: LangugeFilterApplied, isChineseBowserLocation: IsBrowserLocationInChina },
+            success: function (response) {
+                if (response) {
+                    favDataLoaded = false;
+                    IsProductFilterExpaned = true;
+                    $("#event-summary-panel").html(response.eventsPartialView);
+                    $("#events-filter-panel").html(response.filterLargeScreenPartialView);
+                    $("#events-responsive-filterpanel").html(response.filterSmallScreenPartialView);
+                    updateFavCount();
+                    $("#ProgressBarContainer").addClass("hide-dom-element");
+                    Refinedresultcountfocus();
+                }
+            }
+        });
+    }
+
+    // hide applied filters section when no filters are applied
+    if ($(".filterbtn-container").is(":empty")) {
+        $(".applied-filters").hide();
+    }
+
+    // reset product filter values
+    $('input[name="product"]').prop('checked', false);
+
+    // hide clear product filters button if no filters are applied
+    $('#ClearProductFilter').hide();
+
+    // hide clear all filter button if no product filter is selected
+    if ($('input[name="scenarioheading"]:checked').length == 0 && $('input[name="scenariosubheading"]:checked').length == 0 && $('input[name="product"]:checked').length == 0 &&
+        $('input[name="role"]:checked').length == 0 && $('input[name="industry"]:checked').length == 0 && $("#FavDataSpan").text() === "0") {
+        $('#ClearAllFilters').hide();
+    }
+});
+
+function GetClearFilterQueryParamsFromUrl(filtername) {
+    var eventsURL = decodeURI(window.location.href);
+    var getclearallfilterqueryparams = [];
+    if (eventsURL.indexOf("?") > -1) {
+        var urloriginandpatharray = eventsURL.split("?");
+
+        // check if url has the filter applied
+        if (urloriginandpatharray[1].indexOf(filtername + "=") > -1) {
+            var urlpatharray = urloriginandpatharray[1].split("&");
+            $.each(urlpatharray, function (index, value) {
+                if (value.indexOf(filtername + "=") > -1) {
+                    getclearallfilterqueryparams.push(value);
+                }
+            });
+        }
+    }
+
+    return getclearallfilterqueryparams;
+}
+
+$('#ClearAllFilters').on('click', function () {
+    GlobalLastFocusedElement = "FavouritesFilterButton";
+    var clearallfiltersqueryparams = [];
+    // get applied scenario filter values and remove applied filter buttons
+    $('input[name="scenarioheading"]:checked').each(function () {
+        var scenariofiltername = GlobalScenarioFilterNameContsant;
+        var selectedscenario = $(this).val();
+        var scenarioqueryparam = scenariofiltername + "=" + selectedscenario.replace(/\&/g, "%26");
+        var selectedscenariobtnid = (GlobalScenarioFilterNameContsant + selectedscenario).replace(/[^A-Z0-9]/ig, "") + "FilterApplied";
+        if ($("#" + selectedscenariobtnid).length > 0) {
+            $("#" + selectedscenariobtnid).remove();
+        }
+        clearallfiltersqueryparams.push(scenarioqueryparam);
+    });
+    // get applied scenario filter values from url which are missed during filter checkbox validations
+    var clearscenarioheadingfilterqueryparamsfromURL = GetClearFilterQueryParamsFromUrl(GlobalScenarioFilterNameContsant);
+    if (clearscenarioheadingfilterqueryparamsfromURL.length > 0) {
+        $.each(clearscenarioheadingfilterqueryparamsfromURL, function (urlparamindex, urlparamvalue) {
+            var isfilteravailableinurl = true;
+            $.each(clearallfiltersqueryparams, function (index, value) {
+                if (urlparamvalue === value) {
+                    isfilteravailableinurl = false;
+                }
+            });
+            if (isfilteravailableinurl) {
+                clearallfiltersqueryparams.push(urlparamvalue);
+
+                // remove filter applied button for url params
+                var paramvaluearray = urlparamvalue.split("=");
+                var paramvalue = paramvaluearray[1];
+                var paramfilterappliedbtnid = (GlobalScenarioFilterNameContsant + paramvalue).replace(/[^A-Z0-9]/ig, "") + "FilterApplied";
+                if ($("#" + paramfilterappliedbtnid).length > 0) {
+                    $("#" + paramfilterappliedbtnid).remove();
+                }
+            }
+        });
+    }
+
+    $('input[name="scenariosubheading"]:checked').each(function () {
+        var scenariofiltername = GlobalScenarioFilterNameContsant;
+        var selectedscenario = $(this).val();
+        var scenarioqueryparam = scenariofiltername + "=" + selectedscenario.replace(/\&/g, "%26");
+        var selectedscenariobtnid = (GlobalScenarioFilterNameContsant + selectedscenario).replace(/[^A-Z0-9]/ig, "") + "FilterApplied";
+        if ($("#" + selectedscenariobtnid).length > 0) {
+            $("#" + selectedscenariobtnid).remove();
+        }
+        clearallfiltersqueryparams.push(scenarioqueryparam);
+    });
+    // get applied scenariosubheading filter values from url which are missed during filter checkbox validations
+    var clearscenariosubheadingfilterqueryparamsfromURL = GetClearFilterQueryParamsFromUrl(GlobalScenarioFilterNameContsant);
+    if (clearscenariosubheadingfilterqueryparamsfromURL.length > 0) {
+        $.each(clearscenariosubheadingfilterqueryparamsfromURL, function (urlparamindex, urlparamvalue) {
+            var isfilteravailableinurl = true;
+            $.each(clearallfiltersqueryparams, function (index, value) {
+                if (urlparamvalue === value) {
+                    isfilteravailableinurl = false;
+                }
+            });
+            if (isfilteravailableinurl) {
+                clearallfiltersqueryparams.push(urlparamvalue);
+
+                // remove filter applied button for url params
+                var paramvaluearray = urlparamvalue.split("=");
+                var paramvalue = paramvaluearray[1];
+                var paramfilterappliedbtnid = (GlobalScenarioFilterNameContsant + paramvalue).replace(/[^A-Z0-9]/ig, "") + "FilterApplied";
+                if ($("#" + paramfilterappliedbtnid).length > 0) {
+                    $("#" + paramfilterappliedbtnid).remove();
+                }
+            }
+        });
+    }
+
+    // get applied product filter values and remove applied filter buttons
+    $('input[name="product"]:checked').each(function () {
+        var Productfiltername = GlobalProductFilterNameContsant;
+        var selectedproduct = $(this).val();
+        var selectedproductbtnid = (GlobalProductFilterNameContsant + selectedproduct).replace(/[^A-Z0-9]/ig, "") + "FilterApplied";
+        var productqueryparam = Productfiltername + "=" + selectedproduct.replace(/\&/g, "%26");
+        if ($("#" + selectedproductbtnid).length > 0) {
+            $("#" + selectedproductbtnid).remove();
+        }
+        clearallfiltersqueryparams.push(productqueryparam);
+    });
+    // get applied product filter values from url which are missed during filter checkbox validations
+    var clearproductfilterqueryparamsfromURL = GetClearFilterQueryParamsFromUrl(GlobalProductFilterNameContsant);
+    if (clearproductfilterqueryparamsfromURL.length > 0) {
+        $.each(clearproductfilterqueryparamsfromURL, function (urlparamindex, urlparamvalue) {
+            var isfilteravailableinurl = true;
+            $.each(clearallfiltersqueryparams, function (index, value) {
+                if (urlparamvalue === value) {
+                    isfilteravailableinurl = false;
+                }
+            });
+            if (isfilteravailableinurl) {
+                clearallfiltersqueryparams.push(urlparamvalue);
+
+                // remove filter applied button for url params
+                var paramvaluearray = urlparamvalue.split("=");
+                var paramvalue = paramvaluearray[1];
+                var paramfilterappliedbtnid = (GlobalProductFilterNameContsant + paramvalue).replace(/[^A-Z0-9]/ig, "") + "FilterApplied";
+                if ($("#" + paramfilterappliedbtnid).length > 0) {
+                    $("#" + paramfilterappliedbtnid).remove();
+                }
+            }
+        });
+    }
+
+    // get applied role filter values and remove applied filter buttons
+    $('input[name="role"]:checked').each(function () {
+        var rolefiltername = GlobalRoleFilterNameContsant;
+        var selectedrole = $(this).val();
+        var selectedrolebtnid = (GlobalRoleFilterNameContsant + selectedrole).replace(/[^A-Z0-9]/ig, "") + "FilterApplied";
+        var rolequeryparam = rolefiltername + "=" + selectedrole.replace(/\&/g, "%26");
+        if ($("#" + selectedrolebtnid).length > 0) {
+            $("#" + selectedrolebtnid).remove();
+        }
+        clearallfiltersqueryparams.push(rolequeryparam);
+    });
+    // get applied role filter values from url which are missed during filter checkbox validations
+    var clearrolefilterqueryparamsfromURL = GetClearFilterQueryParamsFromUrl(GlobalRoleFilterNameContsant);
+    if (clearrolefilterqueryparamsfromURL.length > 0) {
+        $.each(clearrolefilterqueryparamsfromURL, function (urlparamindex, urlparamvalue) {
+            var isfilteravailableinurl = true;
+            $.each(clearallfiltersqueryparams, function (index, value) {
+                if (urlparamvalue === value) {
+                    isfilteravailableinurl = false;
+                }
+            });
+            if (isfilteravailableinurl) {
+                clearallfiltersqueryparams.push(urlparamvalue);
+
+                // remove filter applied button for url params
+                var paramvaluearray = urlparamvalue.split("=");
+                var paramvalue = paramvaluearray[1];
+                var paramfilterappliedbtnid = (GlobalRoleFilterNameContsant + paramvalue).replace(/[^A-Z0-9]/ig, "") + "FilterApplied";
+                if ($("#" + paramfilterappliedbtnid).length > 0) {
+                    $("#" + paramfilterappliedbtnid).remove();
+                }
+            }
+        });
+    }
+
+    // get applied industry filter values and remove applied filter buttons
+    $('input[name="industry"]:checked').each(function () {
+        var industryfiltername = GlobalIndustryFilterNameContsant;
+        var selectedindustry = $(this).val();
+        var selectedindustrybtnid = (GlobalIndustryFilterNameContsant + selectedindustry).replace(/[^A-Z0-9]/ig, "") + "FilterApplied";
+        var industryqueryparam = industryfiltername + "=" + selectedindustry.replace(/\&/g, "%26");
+        if ($("#" + selectedindustrybtnid).length > 0) {
+            $("#" + selectedindustrybtnid).remove();
+        }
+        clearallfiltersqueryparams.push(industryqueryparam);
+    });
+    // get applied industry filter values from url which are missed during filter checkbox validations
+    var clearindustryfilterqueryparamsfromURL = GetClearFilterQueryParamsFromUrl(GlobalIndustryFilterNameContsant);
+    if (clearindustryfilterqueryparamsfromURL.length > 0) {
+        $.each(clearindustryfilterqueryparamsfromURL, function (urlparamindex, urlparamvalue) {
+            var isfilteravailableinurl = true;
+            $.each(clearallfiltersqueryparams, function (index, value) {
+                if (urlparamvalue === value) {
+                    isfilteravailableinurl = false;
+                }
+            });
+            if (isfilteravailableinurl) {
+                clearallfiltersqueryparams.push(urlparamvalue);
+
+                // remove filter applied button for url params
+                var paramvaluearray = urlparamvalue.split("=");
+                var paramvalue = paramvaluearray[1];
+                var paramfilterappliedbtnid = (GlobalIndustryFilterNameContsant + paramvalue).replace(/[^A-Z0-9]/ig, "") + "FilterApplied";
+                if ($("#" + paramfilterappliedbtnid).length > 0) {
+                    $("#" + paramfilterappliedbtnid).remove();
+                }
+            }
+        });
+    }
+
+    AjaxCallForClearAllPreference(clearallfiltersqueryparams);
+    ResetFilterValuesInfilterMenu();
+});
+
+function ResetFilterValuesInfilterMenu() {
+    // reset scenario filter values
+    $('input[name="scenarioheading"]').prop('checked', false);
+    $('input[name="scenariosubheading"]').prop('checked', false);
+
+    // reset product filter values
+    $('input[name="product"]').prop('checked', false);
+
+    // reset role filter values
+    $('input[name="role"]').prop('checked', false);
+
+    // reset industry filter values
+    $('input[name="industry"]').prop('checked', false);
+
+    // hide applied filters section when no filters are applied
+    if ($(".filterbtn-container").is(":empty")) {
+        $(".applied-filters").hide();
+    }
+
+    // hide clear product filter button
+    $('#ClearProductFilter').hide();
+
+    // hide clear all filters button
+    $('#ClearAllFilters').hide();
+}
+
+function DeleteExistingScenarioFilterButtons(filterbuttonid) {
+    $("button[id^='" + filterbuttonid + "']").remove();
+}
+
+$('input[name="scenarioheading"]').on('click', function () {
+    // find the appropriate child li items and set the selected value accordingly to subheading value
+    $(this).parents("li.accordian-checkbox").children("ul.subheading-unorderlist").children("li.multiaccordian-checkbox")
+        .children("label.sidebarmenu-selectlabel").children("input[type=checkbox]").prop("checked", $(this).prop("checked"));
+
+    var filtername = GlobalScenarioFilterNameContsant;
+    var selectedscenario = $(this).val();
+    var selectedscenariobtnid = (GlobalScenarioFilterNameContsant + selectedscenario).replace(/[^A-Z0-9]/ig, "") + "FilterApplied";
+    if ($(this).is(":checked")) {
+        // delete sublevel scenario buttons when heading level senario is applied
+        DeleteExistingScenarioFilterButtons((GlobalScenarioFilterNameContsant + selectedscenario).replace(/[^A-Z0-9]/ig, ""));
+        CreateDyanmicAppliedFilterButtons(selectedscenario, selectedscenariobtnid);
+        AjaxCallForHeadingLevelScenarioProgram(filtername, selectedscenario);
+
+        // check if the remove applied filter is already applied during the page load for this selected value.
+        // if already applied skip this remove functionality or else apply it
+        var isremovealreadyexists = false;
+        $.each(ScenarioArrayForDefaultRemoveFilterAppliedFromURL, function (index, value) {
+            if (value == selectedscenario) {
+                isremovealreadyexists = true;
+                return false;
+            }
+        });
+        if (!isremovealreadyexists) {
+            if (ScenarioArrayForSelectedFilterValues.length === 0) {
+                RemoveAppliedFilters(filtername, selectedscenario, selectedscenariobtnid, null);
+                ScenarioArrayForSelectedFilterValues.push(selectedscenario);
+            } else {
+                var isremovefilteralreadyranforthisfiltervalue = false;
+                $.each(ScenarioArrayForSelectedFilterValues, function (selectedfiltervalueindex, selectedfiltervalue) {
+                    if (selectedscenario === selectedfiltervalue) {
+                        isremovefilteralreadyranforthisfiltervalue = true;
+                        return false;
+                    }
+                });
+                if (!isremovefilteralreadyranforthisfiltervalue) {
+                    RemoveAppliedFilters(filtername, selectedscenario, selectedscenariobtnid, null);
+                    ScenarioArrayForSelectedFilterValues.push(selectedscenario);
+                }
+            }
+        }
+    } else {
+        if ($("#" + selectedscenariobtnid).length > 0) {
+            AjaxCallForEventsData(filtername, selectedscenario);
+            $("#" + selectedscenariobtnid).remove();
+
+            // hide applied filters section when no filters are applied
+            if ($(".filterbtn-container").is(":empty")) {
+                $(".applied-filters").hide();
+            }
+        }
+    }
+});
+
+$('input[name="scenariosubheading"]').on("click", function () {
+    var filtername = GlobalScenarioFilterNameContsant;
+    var totalsubheadingcheckboxcount = parseInt($(this).parents("ul.subheading-unorderlist").children("li.multiaccordian-checkbox").length);
+    var selectedsubheadingcount = parseInt(0);
+    var parentcheckbox = $(this).parents("li.accordian-checkbox").children("div.multilayer-accordian").children("label.sidebarmenu-selectlabel").children("input[type=checkbox]");
+
+    // get the count of all selected sublevel checkboxes
+    for (var i = 0; i < totalsubheadingcheckboxcount; i++) {
+        if ($(this).parents("ul.subheading-unorderlist").children("li.multiaccordian-checkbox")[i].children[0].children[0].checked) {
+            selectedsubheadingcount++;
+        }
+    }
+
+    // check if all other sublevel checkbox are selected, if all are selcted make the heading checkbox as selected.
+    if (selectedsubheadingcount == totalsubheadingcheckboxcount) {
+        parentcheckbox.prop("checked", true);
+        var selectedscenario = parentcheckbox.val();
+        var selectedscenariobtnid = (GlobalScenarioFilterNameContsant + selectedscenario).replace(/[^A-Z0-9]/ig, "") + "FilterApplied";
+        // delete sublevel scenario buttons when heading level senario is applied
+        DeleteExistingScenarioFilterButtons((GlobalScenarioFilterNameContsant + selectedscenario).replace(/[^A-Z0-9]/ig, ""));
+        CreateDyanmicAppliedFilterButtons(selectedscenario, selectedscenariobtnid);
+        AjaxCallForHeadingLevelScenarioProgram(filtername, selectedscenario);
+
+        // check if the remove applied filter is already applied during the page load for this selected value.
+        // if already applied skip this remove functionality or else apply it
+        var isremovealreadyexists = false;
+        $.each(ScenarioArrayForDefaultRemoveFilterAppliedFromURL, function (index, value) {
+            if (value == selectedscenario) {
+                isremovealreadyexists = true;
+                return false;
+            }
+        });
+        if (!isremovealreadyexists) {
+            if (ScenarioArrayForSelectedFilterValues.length === 0) {
+                RemoveAppliedFilters(filtername, selectedscenario, selectedscenariobtnid, null);
+                ScenarioArrayForSelectedFilterValues.push(selectedscenario);
+            } else {
+                var isremovefilteralreadyranforthisfiltervalue = false;
+                $.each(ScenarioArrayForSelectedFilterValues, function (selectedfiltervalueindex, selectedfiltervalue) {
+                    if (selectedscenario === selectedfiltervalue) {
+                        isremovefilteralreadyranforthisfiltervalue = true;
+                        return false;
+                    }
+                });
+                if (!isremovefilteralreadyranforthisfiltervalue) {
+                    RemoveAppliedFilters(filtername, selectedscenario, selectedscenariobtnid, null);
+                    ScenarioArrayForSelectedFilterValues.push(selectedscenario);
+                }
+            }
+        }
+    } else {
+        var selectedsublevelscenarioarray = [];
+        var parentscenariovalue = parentcheckbox.val();
+        parentcheckbox.prop("checked", false);
+        for (var i = 0; i < totalsubheadingcheckboxcount; i++) {
+            if ($(this).parents("ul.subheading-unorderlist").children("li.multiaccordian-checkbox")[i].children[0].children[0].checked) {
+                selectedsublevelscenarioarray.push($(this).parents("ul.subheading-unorderlist").children("li.multiaccordian-checkbox")[i].children[0].children[0].value);
+            }
+        }
+        // delete sublevel and heading level scenario buttons
+        DeleteExistingScenarioFilterButtons((GlobalScenarioFilterNameContsant + parentscenariovalue).replace(/[^A-Z0-9]/ig, ""));
+        if (selectedsublevelscenarioarray.length > 0) {
+            $.each(selectedsublevelscenarioarray, function (index, value) {
+                var selectedsubheadingvalue = value;
+                var selectedsubheadingvaluebtnid = (GlobalScenarioFilterNameContsant + selectedsubheadingvalue).replace(/[^A-Z0-9]/ig, "") + "FilterApplied";
+                CreateDyanmicAppliedFilterButtons(selectedsubheadingvalue, selectedsubheadingvaluebtnid);
+
+                // check if the remove applied filter is already applied during the page load for this selected value.
+                // if already applied skip this remove functionality or else apply it
+                var isremovealreadyexists = false;
+                $.each(ScenarioArrayForDefaultRemoveFilterAppliedFromURL, function (defaulturlindex, defaulturlvalue) {
+                    if (defaulturlvalue == selectedsubheadingvalue) {
+                        isremovealreadyexists = true;
+                        return false;
+                    }
+                });
+                if (!isremovealreadyexists) {
+                    if (ScenarioArrayForSelectedFilterValues.length === 0) {
+                        RemoveAppliedFilters(filtername, selectedsubheadingvalue, selectedsubheadingvaluebtnid, null);
+                        ScenarioArrayForSelectedFilterValues.push(selectedsubheadingvalue);
+                    } else {
+                        var isremovefilteralreadyranforthisfiltervalue = false;
+                        $.each(ScenarioArrayForSelectedFilterValues, function (selectedfiltervalueindex, selectedfiltervalue) {
+                            if (selectedsubheadingvalue === selectedfiltervalue) {
+                                isremovefilteralreadyranforthisfiltervalue = true;
+                                return false;
+                            }
+                        });
+                        if (!isremovefilteralreadyranforthisfiltervalue) {
+                            RemoveAppliedFilters(filtername, selectedsubheadingvalue, selectedsubheadingvaluebtnid, null);
+                            ScenarioArrayForSelectedFilterValues.push(selectedsubheadingvalue);
+                        }
+                    }
+                }
+            });
+        }
+        AjaxCallForSubLevelScenarioProgram(filtername, parentscenariovalue, selectedsublevelscenarioarray);
+    }
+});
+
+function AjaxCallForHeadingLevelScenarioProgram(filtername, selectedscenario) {
+    var eventsURL = decodeURI(window.location.href);
+    var filterquerystring = filtername + "=" + selectedscenario.replace(/\&/g, "%26");
+
+    var islistcardview = false;
+    if ($("#EventListCardToggleButton").hasClass("listcard-togglebtn-active")) {
+        islistcardview = true;
+    }
+
+    if (eventsURL.indexOf("?") > -1) {
+        var urloriginandpatharray = eventsURL.split("?");
+
+        // check if the url path already has this filter applied
+        if (urloriginandpatharray[1].indexOf(filterquerystring) > -1) {
+
+            // split the url path, search for already applied filters and remove it and send push heading filter value
+            var urlpatharray = urloriginandpatharray[1].split("&");
+            for (var i = parseInt(0); i < urlpatharray.length; i++) {
+                if (urlpatharray[i].indexOf(filterquerystring) > -1) {
+                    urlpatharray.splice(i, 1);
+                    i--;
+                }
+            }
+            urlpatharray.push(filterquerystring);
+
+            urloriginandpatharray[1] = urlpatharray.join("&");
+        } else {
+            urloriginandpatharray[1] = urloriginandpatharray[1] + "&" + filterquerystring;
+        }
+
+        if (urloriginandpatharray[1].length > 0) {
+            var ajaxeventsurl = encodeURI(urloriginandpatharray.join("?"));
+        } else {
+            if (urloriginandpatharray.length > 2) {
+                var newfilteredurloriginandpatharray = RemoveNullorEmptyElementsFromArray(urloriginandpatharray);
+                var ajaxeventsurl = encodeURI(newfilteredurloriginandpatharray.join("?"));
+            } else {
+                var ajaxeventsurl = encodeURI(urloriginandpatharray[0]);
+            }
+        }
+
+        // make LangugeFilterApplied to false only if all languge filters are removed
+        if (ajaxeventsurl.indexOf(GlobalLangugeFilterNameContsant + "=") > -1) {
+            LangugeFilterApplied = true;
+        } else {
+            LangugeFilterApplied = false;
+        }
+
+        window.history.pushState({}, null, ajaxeventsurl);
+        $("#ProgressBarContainer").removeClass("hide-dom-element");
+        $.ajax({
+            type: "GET",
+            url: ajaxeventsurl,
+            data: { returnPartialview: true, enableListCardView: islistcardview, latitudeValue: GeoLocationLatitudeValue, longitudeValue: GeoLocationLongitueValue, isLangugeFilterApplied: LangugeFilterApplied, isChineseBowserLocation: IsBrowserLocationInChina },
+            success: function (response) {
+                if (response) {
+                    favDataLoaded = false;
+                    $("#event-summary-panel").html(response.eventsPartialView);
+                    $("#events-filter-panel").html(response.filterLargeScreenPartialView);
+                    $("#events-responsive-filterpanel").html(response.filterSmallScreenPartialView);
+                    updateFavCount();
+                    $("#ProgressBarContainer").addClass("hide-dom-element");
+                    Refinedresultcountfocus();
+                }
+            }
+        });
+    } else {
+        var ajaxeventsurl = encodeURI(eventsURL + "?" + filterquerystring);
+
+        // make LangugeFilterApplied to false only if all languge filters are removed
+        if (ajaxeventsurl.indexOf(GlobalLangugeFilterNameContsant + "=") > -1) {
+            LangugeFilterApplied = true;
+        } else {
+            LangugeFilterApplied = false;
+        }
+
+        window.history.pushState({}, null, ajaxeventsurl);
+        $("#ProgressBarContainer").removeClass("hide-dom-element");
+        $.ajax({
+            type: "GET",
+            url: ajaxeventsurl,
+            data: { returnPartialview: true, enableListCardView: islistcardview, latitudeValue: GeoLocationLatitudeValue, longitudeValue: GeoLocationLongitueValue, isLangugeFilterApplied: LangugeFilterApplied, isChineseBowserLocation: IsBrowserLocationInChina },
+            success: function (response) {
+                if (response) {
+                    favDataLoaded = false;
+                    $("#event-summary-panel").html(response.eventsPartialView);
+                    $("#events-filter-panel").html(response.filterLargeScreenPartialView);
+                    $("#events-responsive-filterpanel").html(response.filterSmallScreenPartialView);
+                    updateFavCount();
+                    $("#ProgressBarContainer").addClass("hide-dom-element");
+                    Refinedresultcountfocus();
+                }
+            }
+        });
+    }
+}
+
+function AjaxCallForSubLevelScenarioProgram(filtername, parentscenariovalue, selectedsublevelscenarioarray) {
+    var eventsURL = decodeURI(window.location.href);
+    var parentscenarioquerystring = filtername + "=" + parentscenariovalue;
+
+    var islistcardview = false;
+    if ($("#EventListCardToggleButton").hasClass("listcard-togglebtn-active")) {
+        islistcardview = true;
+    }
+
+    if (eventsURL.indexOf("?") > -1) {
+        var urloriginandpatharray = eventsURL.split("?");
+
+        // check if the url path already has parent scenario filter applied
+        if (urloriginandpatharray[1].indexOf(filtername + "=") > -1) {
+
+            // split the url path, search for already applied filters of same heading category and remove them
+            var urlpatharray = urloriginandpatharray[1].split("&");
+            for (var i = parseInt(0); i < urlpatharray.length; i++) {
+                if (urlpatharray[i].indexOf(parentscenarioquerystring) > -1) {
+                    urlpatharray.splice(i, 1);
+                    i--;
+                }
+            }
+
+            urloriginandpatharray[1] = urlpatharray.join("&");
+        }
+        if (selectedsublevelscenarioarray.length > 0) {
+            $.each(selectedsublevelscenarioarray, function (index, value) {
+                var subscenarioquerystring = filtername + "=" + value;
+                if (urloriginandpatharray[1].indexOf(value) == -1) {
+                    urloriginandpatharray[1] = urloriginandpatharray[1] + "&" + subscenarioquerystring;
+                }
+            });
+        }
+        if (urloriginandpatharray[1].length > 0) {
+            var ajaxeventsurl = encodeURI(urloriginandpatharray.join("?"));
+        } else {
+            if (urloriginandpatharray.length > 2) {
+                var newfilteredurloriginandpatharray = RemoveNullorEmptyElementsFromArray(urloriginandpatharray);
+                var ajaxeventsurl = encodeURI(newfilteredurloriginandpatharray.join("?"));
+            } else {
+                var ajaxeventsurl = encodeURI(urloriginandpatharray[0]);
+            }
+        }
+
+        // make LangugeFilterApplied to false only if all languge filters are removed
+        if (ajaxeventsurl.indexOf(GlobalLangugeFilterNameContsant + "=") > -1) {
+            LangugeFilterApplied = true;
+        } else {
+            LangugeFilterApplied = false;
+        }
+
+        window.history.pushState({}, null, ajaxeventsurl);
+        $("#ProgressBarContainer").removeClass("hide-dom-element");
+        $.ajax({
+            type: "GET",
+            url: ajaxeventsurl,
+            data: { returnPartialview: true, enableListCardView: islistcardview, latitudeValue: GeoLocationLatitudeValue, longitudeValue: GeoLocationLongitueValue, isLangugeFilterApplied: LangugeFilterApplied, isChineseBowserLocation: IsBrowserLocationInChina },
+            success: function (response) {
+                if (response) {
+                    favDataLoaded = false;
+                    $("#event-summary-panel").html(response.eventsPartialView);
+                    $("#events-filter-panel").html(response.filterLargeScreenPartialView);
+                    $("#events-responsive-filterpanel").html(response.filterSmallScreenPartialView);
+                    updateFavCount();
+                    $("#ProgressBarContainer").addClass("hide-dom-element");
+                    Refinedresultcountfocus();
+                }
+            }
+        });
+    } else {
+        filterquerystringarray = [];
+        if (selectedsublevelscenarioarray.length > 0) {
+            $.each(selectedsublevelscenarioarray, function (index, value) {
+                var filterquerystring = filtername + "=" + value.replace(/\&/g, "%26");
+                filterquerystringarray.push(filterquerystring);
+            });
+        }
+        var ajaxeventsurl = encodeURI(eventsURL + "?" + filterquerystringarray.join("&"));
+
+        // make LangugeFilterApplied to false only if all languge filters are removed
+        if (ajaxeventsurl.indexOf(GlobalLangugeFilterNameContsant + "=") > -1) {
+            LangugeFilterApplied = true;
+        } else {
+            LangugeFilterApplied = false;
+        }
+
+        window.history.pushState({}, null, ajaxeventsurl);
+        $("#ProgressBarContainer").removeClass("hide-dom-element");
+        $.ajax({
+            type: "GET",
+            url: ajaxeventsurl,
+            data: { returnPartialview: true, enableListCardView: islistcardview, latitudeValue: GeoLocationLatitudeValue, longitudeValue: GeoLocationLongitueValue, isLangugeFilterApplied: LangugeFilterApplied, isChineseBowserLocation: IsBrowserLocationInChina },
+            success: function (response) {
+                if (response) {
+                    favDataLoaded = false;
+                    $("#event-summary-panel").html(response.eventsPartialView);
+                    $("#events-filter-panel").html(response.filterLargeScreenPartialView);
+                    $("#events-responsive-filterpanel").html(response.filterSmallScreenPartialView);
+                    updateFavCount();
+                    $("#ProgressBarContainer").addClass("hide-dom-element");
+                    Refinedresultcountfocus();
+                }
+            }
+        });
+    }
+}
+
+$('input[name="role"]').on('click', function () {
+    GlobalLastFocusedElement = this.id;
+    var filtername = this.name;
+    var selectedrole = $(this).val();
+    var filterButtonText = $(this).siblings("span.sidebar-item-name").text()
+    var selectedrolebtnid = (GlobalRoleFilterNameContsant + selectedrole).replace(/[^A-Z0-9]/ig, "") + "FilterApplied";
+    if ($(this).is(":checked")) {
+        CreateDyanmicAppliedFilterButtons(filterButtonText, selectedrolebtnid);
+        AjaxCallForEventsData(filtername, selectedrole);
+
+        // check if the remove applied filter is already applied during the page load for this selected value.
+        // if already applied skip this remove functionality or else apply it
+        var isremovealreadyexists = false;
+        $.each(RoleArrayForDefaultRemoveFilterAppliedFromURL, function (index, value) {
+            if (value == selectedrole) {
+                isremovealreadyexists = true;
+                return false;
+            }
+        });
+        if (!isremovealreadyexists) {
+            if (RoleArrayForSelectedFilterValues.length === 0) {
+                RemoveAppliedFilters(filtername, selectedrole, selectedrolebtnid, null);
+                RoleArrayForSelectedFilterValues.push(selectedrole);
+            } else {
+                var isremovefilteralreadyranforthisfiltervalue = false;
+                $.each(RoleArrayForSelectedFilterValues, function (selectedfiltervalueindex, selectedfiltervalue) {
+                    if (selectedrole === selectedfiltervalue) {
+                        isremovefilteralreadyranforthisfiltervalue = true;
+                        return false;
+                    }
+                });
+                if (!isremovefilteralreadyranforthisfiltervalue) {
+                    RemoveAppliedFilters(filtername, selectedrole, selectedrolebtnid, null);
+                    RoleArrayForSelectedFilterValues.push(selectedrole);
+                }
+            }
+        }
+    } else {
+        if ($("#" + selectedrolebtnid).length > 0) {
+            AjaxCallForEventsData(filtername, selectedrole);
+            $("#" + selectedrolebtnid).remove();
+
+            // hide applied filters section when no filters are applied
+            if ($(".filterbtn-container").is(":empty")) {
+                $(".applied-filters").hide();
+            }
+        }
+    }
+});
+
+$('input[name="industry"]').on('click', function () {
+    GlobalLastFocusedElement = this.id;
+    var filtername = this.name;
+    var selectedindustry = $(this).val();
+    var filterButtonText = $(this).siblings("span.sidebar-item-name").text()
+    var selectedindustrybtnid = (GlobalIndustryFilterNameContsant + selectedindustry).replace(/[^A-Z0-9]/ig, "") + "FilterApplied";
+    if ($(this).is(":checked")) {
+        CreateDyanmicAppliedFilterButtons(filterButtonText, selectedindustrybtnid);
+        AjaxCallForEventsData(filtername, selectedindustry);
+
+        // check if the remove applied filter is already applied during the page load for this selected value.
+        // if already applied skip this remove functionality or else apply it
+        var isremovealreadyexists = false;
+        $.each(IndustryArrayForDefaultRemoveFilterAppliedFromURL, function (index, value) {
+            if (value == selectedindustry) {
+                isremovealreadyexists = true;
+                return false;
+            }
+        });
+        if (!isremovealreadyexists) {
+            if (IndustryArrayForSelectedFilterValues.length === 0) {
+                RemoveAppliedFilters(filtername, selectedindustry, selectedindustrybtnid, null);
+                IndustryArrayForSelectedFilterValues.push(selectedindustry);
+            } else {
+                var isremovefilteralreadyranforthisfiltervalue = false;
+                $.each(IndustryArrayForSelectedFilterValues, function (selectedfiltervalueindex, selectedfiltervalue) {
+                    if (selectedindustry === selectedfiltervalue) {
+                        isremovefilteralreadyranforthisfiltervalue = true;
+                        return false;
+                    }
+                });
+                if (!isremovefilteralreadyranforthisfiltervalue) {
+                    RemoveAppliedFilters(filtername, selectedindustry, selectedindustrybtnid, null);
+                    IndustryArrayForSelectedFilterValues.push(selectedindustry);
+                }
+            }
+        }
+    } else {
+        if ($("#" + selectedindustrybtnid).length > 0) {
+            AjaxCallForEventsData(filtername, selectedindustry);
+            $("#" + selectedindustrybtnid).remove();
+
+            // hide applied filters section when no filters are applied
+            if ($(".filterbtn-container").is(":empty")) {
+                $(".applied-filters").hide();
+            }
+        }
+    }
+});
+
+$('input[name="language"]').on('click', function () {
+    GlobalLastFocusedElement = this.id;
+    var filtername = this.name;
+    var selectedlanguage = $(this).val();
+    var selectedlanguagebtnid = GlobalLangugeFilterNameContsant + selectedlanguage.replace(/[0-9`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '').replace(/ /g, '') + "PreferenceApplied";
+    if ($(this).is(":checked")) {
+        CreateDyanmicAppliedFilterButtons(selectedlanguage, selectedlanguagebtnid);
+        AjaxCallForEventsData(filtername, selectedlanguage);
+
+        // check if the remove applied filter is already applied during the page load for this selected value.
+        // if already applied skip this remove functionality or else apply it
+        var isremovealreadyexists = false;
+        $.each(LanguageArrayForDefaultRemoveFilterAppliedFromURL, function (index, value) {
+            if (value == selectedlanguage) {
+                isremovealreadyexists = true;
+                return false;
+            }
+        });
+        if (!isremovealreadyexists) {
+            if (LanguageArrayForSelectedFilterValues.length === 0) {
+                RemoveAppliedFilters(filtername, selectedlanguage, selectedlanguagebtnid, LanguageFilterQueryLocalStorageKey);
+                LanguageArrayForSelectedFilterValues.push(selectedlanguage);
+            } else {
+                var isremovefilteralreadyranforthisfiltervalue = false;
+                $.each(LanguageArrayForSelectedFilterValues, function (selectedfiltervalueindex, selectedfiltervalue) {
+                    if (selectedlanguage === selectedfiltervalue) {
+                        isremovefilteralreadyranforthisfiltervalue = true;
+                        return false;
+                    }
+                });
+                if (!isremovefilteralreadyranforthisfiltervalue) {
+                    RemoveAppliedFilters(filtername, selectedlanguage, selectedlanguagebtnid, LanguageFilterQueryLocalStorageKey);
+                    LanguageArrayForSelectedFilterValues.push(selectedlanguage);
+                }
+            }
+        }
+        // show clear event languge button
+        $('#ClearEventLanguage').show();
+
+        // add selected value into local storage
+        var lsquerystring = GlobalLangugeFilterNameContsant + "=" + selectedlanguage.replace(/\%26/g, "&");
+        AddFilterQueryToLocalStorage(LanguageFilterQueryLocalStorageKey, lsquerystring);
+    } else {
+        // hide clear event languge button
+        $('#ClearEventLanguage').hide();
+
+        if ($("#" + selectedlanguagebtnid).length > 0) {
+            AjaxCallForEventsData(filtername, selectedlanguage);
+            $("#" + selectedlanguagebtnid).remove();
+
+            // hide applied filters section when no filters are applied
+            if ($(".filterbtn-container").is(":empty")) {
+                $(".applied-filters").hide();
+            }
+        }
+
+        // delete selected value from loal storage
+        var lsquerystring = GlobalLangugeFilterNameContsant + "=" + selectedlanguage.replace(/\%26/g, "&");
+        DeleteFilterQueryFromLocalStorage(LanguageFilterQueryLocalStorageKey, lsquerystring);
+    }
+});
+
+$('input[name="deliverylanguage"]').on('click', function () {
+    GlobalLastFocusedElement = this.id;
+    var filtername = this.name;
+    var selecteddeliverylanguage = $(this).val();
+    var selecteddeliverylanguagebtnid = GlobaldeliveryLangugeFilterNameContsant + selecteddeliverylanguage.replace(/[0-9`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '').replace(/ /g, '') + "PreferenceApplied";
+    if ($(this).is(":checked")) {
+        CreateDyanmicAppliedFilterButtons(selecteddeliverylanguage, selecteddeliverylanguagebtnid);
+        AjaxCallForEventsData(filtername, selecteddeliverylanguage);
+
+        // check if the remove applied filter is already applied during the page load for this selected value.
+        // if already applied skip this remove functionality or else apply it
+        var isremovealreadyexists = false;
+        $.each(deliveryLanguageArrayForDefaultRemoveFilterAppliedFromURL, function (index, value) {
+            if (value == selecteddeliverylanguage) {
+                isremovealreadyexists = true;
+                return false;
+            }
+        });
+        if (!isremovealreadyexists) {
+            if (deliveryLanguageArrayForSelectedFilterValues.length === 0) {
+                RemoveAppliedFilters(filtername, selecteddeliverylanguage, selecteddeliverylanguagebtnid, deliveryLanguageFilterQueryLocalStorageKey);
+                deliveryLanguageArrayForSelectedFilterValues.push(selecteddeliverylanguage);
+            } else {
+                var isremovefilteralreadyranforthisfiltervalue = false;
+                $.each(deliveryLanguageArrayForSelectedFilterValues, function (selectedfiltervalueindex, selectedfiltervalue) {
+                    if (selecteddeliverylanguage === selectedfiltervalue) {
+                        isremovefilteralreadyranforthisfiltervalue = true;
+                        return false;
+                    }
+                });
+                if (!isremovefilteralreadyranforthisfiltervalue) {
+                    RemoveAppliedFilters(filtername, selecteddeliverylanguage, selecteddeliverylanguagebtnid, deliveryLanguageFilterQueryLocalStorageKey);
+                    deliveryLanguageArrayForSelectedFilterValues.push(selecteddeliverylanguage);
+                }
+            }
+        }
+        // show clear event languge button
+        $('#ClearEventdeliveryLanguage').show();
+
+        // add selected value into local storage
+        var deliverylsquerystring = GlobaldeliveryLangugeFilterNameContsant + "=" + selecteddeliverylanguage.replace(/\%26/g, "&");
+        AddFilterQueryToLocalStorage(deliveryLanguageFilterQueryLocalStorageKey, deliverylsquerystring);
+    } else {
+        // hide clear event languge button
+        $('#ClearEventdeliveryLanguage').hide();
+
+        if ($("#" + selecteddeliverylanguagebtnid).length > 0) {
+            AjaxCallForEventsData(filtername, selecteddeliverylanguage);
+            $("#" + selecteddeliverylanguagebtnid).remove();
+
+            // hide applied filters section when no filters are applied
+            if ($(".filterbtn-container").is(":empty")) {
+                $(".applied-filters").hide();
+            }
+        }
+
+        // delete selected value from loal storage
+        var deliverylsquerystring = GlobaldeliveryLangugeFilterNameContsant + "=" + selecteddeliverylanguage.replace(/\%26/g, "&");
+        DeleteFilterQueryFromLocalStorage(deliveryLanguageFilterQueryLocalStorageKey, deliverylsquerystring);
+    }
+});
+
+$('input[name="subtitlelanguage"]').on('click', function () {
+    GlobalLastFocusedElement = this.id;
+    var filtername = this.name;
+    var selectedsubtitlelanguage = $(this).val();
+    var selectedsubtitlelanguagebtnid = GlobalsubtitleLangugeFilterNameContsant + selectedsubtitlelanguage.replace(/[0-9`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '').replace(/ /g, '') + "PreferenceApplied";
+    if ($(this).is(":checked")) {
+        CreateDyanmicAppliedFilterButtons(selectedsubtitlelanguage, selectedsubtitlelanguagebtnid);
+        AjaxCallForEventsData(filtername, selectedsubtitlelanguage);
+
+        // check if the remove applied filter is already applied during the page load for this selected value.
+        // if already applied skip this remove functionality or else apply it
+        var isremovealreadyexists = false;
+        $.each(subtitleLanguageArrayForDefaultRemoveFilterAppliedFromURL, function (index, value) {
+            if (value == selectedsubtitlelanguage) {
+                isremovealreadyexists = true;
+                return false;
+            }
+        });
+        if (!isremovealreadyexists) {
+            if (subtitleLanguageArrayForSelectedFilterValues.length === 0) {
+                RemoveAppliedFilters(filtername, selectedsubtitlelanguage, selectedsubtitlelanguagebtnid, subtitleLanguageFilterQueryLocalStorageKey);
+                subtitleLanguageArrayForSelectedFilterValues.push(selectedsubtitlelanguage);
+            } else {
+                var isremovefilteralreadyranforthisfiltervalue = false;
+                $.each(subtitleLanguageArrayForSelectedFilterValues, function (selectedfiltervalueindex, selectedfiltervalue) {
+                    if (selectedsubtitlelanguage === selectedfiltervalue) {
+                        isremovefilteralreadyranforthisfiltervalue = true;
+                        return false;
+                    }
+                });
+                if (!isremovefilteralreadyranforthisfiltervalue) {
+                    RemoveAppliedFilters(filtername, selectedsubtitlelanguage, selectedsubtitlelanguagebtnid, subtitleLanguageFilterQueryLocalStorageKey);
+                    subtitleLanguageArrayForSelectedFilterValues.push(selectedsubtitlelanguage);
+                }
+            }
+        }
+        // show clear event languge button
+        $('#ClearEventsubtitleLanguage').show();
+
+        // add selected value into local storage
+        var subtitlelsquerystring = GlobalsubtitleLangugeFilterNameContsant + "=" + selectedsubtitlelanguage.replace(/\%26/g, "&");
+        AddFilterQueryToLocalStorage(subtitleLanguageFilterQueryLocalStorageKey, subtitlelsquerystring);
+    } else {
+        // hide clear event languge button
+        $('#ClearEventsubtitleLanguage').hide();
+
+        if ($("#" + selectedsubtitlelanguagebtnid).length > 0) {
+            AjaxCallForEventsData(filtername, selectedsubtitlelanguage);
+            $("#" + selectedsubtitlelanguagebtnid).remove();
+
+            // hide applied filters section when no filters are applied
+            if ($(".filterbtn-container").is(":empty")) {
+                $(".applied-filters").hide();
+            }
+        }
+
+        // delete selected value from loal storage
+        var subtitlelsquerystring = GlobalsubtitleLangugeFilterNameContsant + "=" + selectedsubtitlelanguage.replace(/\%26/g, "&");
+        DeleteFilterQueryFromLocalStorage(subtitleLanguageFilterQueryLocalStorageKey, subtitlelsquerystring);
+    }
+});
+
+$('input[name="format"]').on('click', function () {
+    GlobalLastFocusedElement = this.id;
+    var filtername = this.name;
+    var selectedformat = $(this).val();
+    var filterButtonText = $(this).siblings("span.sidebar-item-name").text()
+    var selectedformatbtnid = (GlobalFormatFilterNameContsant + selectedformat).replace(/[^A-Z0-9]/ig, "") + "PreferenceApplied";
+    if ($(this).is(":checked")) {
+        CreateDyanmicAppliedFilterButtons(filterButtonText, selectedformatbtnid);
+        AjaxCallForEventsData(filtername, selectedformat);
+
+        // check if the remove applied filter is already applied during the page load for this selected value.
+        // if already applied skip this remove functionality or else apply it
+        var isremovealreadyexists = false;
+        $.each(FormatArrayForDefaultRemoveFilterAppliedFromURL, function (index, value) {
+            if (value == selectedformat) {
+                isremovealreadyexists = true;
+                return false;
+            }
+        });
+        if (!isremovealreadyexists) {
+            if (FormatArrayForSelectedFilterValues.length === 0) {
+                RemoveAppliedFilters(filtername, selectedformat, selectedformatbtnid, EventFormatFilterQueryLocalStorageKey);
+                FormatArrayForSelectedFilterValues.push(selectedformat);
+            } else {
+                var isremovefilteralreadyranforthisfiltervalue = false;
+                $.each(FormatArrayForSelectedFilterValues, function (selectedfiltervalueindex, selectedfiltervalue) {
+                    if (selectedformat === selectedfiltervalue) {
+                        isremovefilteralreadyranforthisfiltervalue = true;
+                        return false;
+                    }
+                });
+                if (!isremovefilteralreadyranforthisfiltervalue) {
+                    RemoveAppliedFilters(filtername, selectedformat, selectedformatbtnid, EventFormatFilterQueryLocalStorageKey);
+                    FormatArrayForSelectedFilterValues.push(selectedformat);
+                }
+            }
+        }
+
+        // add selected value into local storage
+        var lsquerystring = GlobalFormatFilterNameContsant + "=" + selectedformat.replace(/\%26/g, "&");
+        AddFilterQueryToLocalStorage(EventFormatFilterQueryLocalStorageKey, lsquerystring);
+    } else {
+        if ($("#" + selectedformatbtnid).length > 0) {
+            AjaxCallForEventsData(filtername, selectedformat);
+            $("#" + selectedformatbtnid).remove();
+
+            // hide applied filters section when no filters are applied
+            if ($(".filterbtn-container").is(":empty")) {
+                $(".applied-filters").hide();
+            }
+        }
+
+        // delete selected value from loal storage
+        var lsquerystring = GlobalFormatFilterNameContsant + "=" + selectedformat.replace(/\%26/g, "&");
+        DeleteFilterQueryFromLocalStorage(EventFormatFilterQueryLocalStorageKey, lsquerystring);
+    }
+});
+
+$("#SwitchEventTimeZoneToUserLocale").on('click', function () {
+    GlobalLastFocusedElement = "SwitchEventTimeZoneToUserLocale";
+    var switchtimezone = GetBrowserLocationTimeZone();;
+    var switchtimezonebtnid = (GlobalSwitchTimeZoneFilterNameContsant + switchtimezone).replace(/[^A-Z0-9]/ig, "") + "PreferenceApplied";
+    if ($(this).is(":checked")) {
+        AjaxCallForEventsData(GlobalSwitchTimeZoneFilterNameContsant, switchtimezone);
+
+        // check if the remove applied filter is already applied during the page load for this selected value.
+        // if already applied skip this remove functionality or else apply it
+        var isremovealreadyexists = false;
+        $.each(SwitchTimeZoneArrayForDefaultRemoveFilterAppliedFromURL, function (index, value) {
+            if (value == switchtimezone) {
+                isremovealreadyexists = true;
+                return false;
+            }
+        });
+        if (!isremovealreadyexists) {
+            if (SwitchTimeZoneArrayForSelectedFilterValues.length === 0) {
+                RemoveAppliedFilters(GlobalSwitchTimeZoneFilterNameContsant, switchtimezone, switchtimezonebtnid, ShowInLocalTimeFilterQueryLocalStorageKey);
+                SwitchTimeZoneArrayForSelectedFilterValues.push(switchtimezone);
+            } else {
+                var isremovefilteralreadyranforthisfiltervalue = false;
+                $.each(SwitchTimeZoneArrayForSelectedFilterValues, function (selectedfiltervalueindex, selectedfiltervalue) {
+                    if (switchtimezone === selectedfiltervalue) {
+                        isremovefilteralreadyranforthisfiltervalue = true;
+                        return false;
+                    }
+                });
+                if (!isremovefilteralreadyranforthisfiltervalue) {
+                    RemoveAppliedFilters(GlobalSwitchTimeZoneFilterNameContsant, switchtimezone, switchtimezonebtnid, ShowInLocalTimeFilterQueryLocalStorageKey);
+                    SwitchTimeZoneArrayForSelectedFilterValues.push(switchtimezone);
+                }
+            }
+        }
+
+        // add selected value into local storage
+        var lsquerystring = GlobalSwitchTimeZoneFilterNameContsant + "=" + 1;
+        AddFilterQueryToLocalStorage(ShowInLocalTimeFilterQueryLocalStorageKey, lsquerystring);
+    } else {
+        if ($("#" + switchtimezonebtnid).length > 0) {
+            $("#" + switchtimezonebtnid).remove();
+        }
+        AjaxCallForEventsData(GlobalSwitchTimeZoneFilterNameContsant, null);
+
+        // hide applied filters section when no filters are applied
+        if ($(".filterbtn-container").is(":empty")) {
+            $(".applied-filters").hide();
+        }
+
+        // delete selected value from loal storage
+        var lsquerystring = GlobalSwitchTimeZoneFilterNameContsant + "=" + 1;
+        DeleteFilterQueryFromLocalStorage(ShowInLocalTimeFilterQueryLocalStorageKey, lsquerystring);
+    }
+});
+
+// make ajax call when user click on search icon
+$("#EventLocationSearchIconButton").on("click", function () {
+    TriggerLocationSearchEvent(null);
+});
+
+// prevent enter key functionality in eventlocationearch textbox
+$('#EventsLocations').keypress(function (event) {
+    if (event.keyCode == 13) {
+        event.preventDefault();
+    }
+});
+
+// below bind event trigger the search filter functionality when enter key is pressed
+$("#EventsLocations").bind("enterKey", function (e) {
+    TriggerLocationSearchEvent(null);
+});
+
+function TriggerLocationSearchEvent(locationvalue) {
+    GlobalLastFocusedElement = "EventsLocations";
+    if (locationvalue != null) {
+        var searchkeyword = $.trim(locationvalue);
+    } else {
+        var searchkeyword = $.trim($("#EventsLocations").val());
+    }
+    var searchkeywordbtnid = (GlobalLocationFilterNameContsant + searchkeyword).replace(/[^A-Z0-9]/ig, "") + "PreferenceApplied";
+    if (searchkeyword != '') {
+        $("#LocationDistanceContent").removeClass("hide-dom-element");
+        CreateDynamicAppliedSearchFilterButton(GlobalLocationSearchFilterBtnNameConstant, searchkeyword, searchkeywordbtnid);
+        AjaxCallForSearchKeywordEventsData(GlobalLocationFilterNameContsant, searchkeyword);
+        RemoveLocationSearchFilterButton(searchkeyword, searchkeywordbtnid);
+
+        // clear location filter in localstorage before storing the filter value
+        localStorage.removeItem(EventLocationFilterQueryLocalStorageKey);
+        // add selected value into local storage
+        var lsquerystring = GlobalLocationFilterNameContsant + "=" + searchkeyword.replace(/\%26/g, "&");
+        AddFilterQueryToLocalStorage(EventLocationFilterQueryLocalStorageKey, lsquerystring);
+    } else {
+        // delete filter value from localstorage
+        localStorage.removeItem(EventLocationFilterQueryLocalStorageKey);
+        //delete location distance value from localstorage
+        localStorage.removeItem(EventLocationDistanceFilterQueryLocalStorageKey);
+    }
+};
+
+function RemoveLocationSearchFilterButton(searchkeyword, searchkeywordbtnid) {
+    if (EventsLocationArrayForSelectedFilterValues.length === 0) {
+        RemoveAppliedSearchEventsFilters(GlobalLocationFilterNameContsant, "EventsLocations", searchkeywordbtnid, EventLocationFilterQueryLocalStorageKey);
+        EventsLocationArrayForSelectedFilterValues.push(searchkeyword);
+    } else {
+        var isremovefilteralreadyranforthisfiltervalue = false;
+        $.each(EventsLocationArrayForSelectedFilterValues, function (selectedfiltervalueindex, selectedfiltervalue) {
+            if (searchkeyword === selectedfiltervalue) {
+                isremovefilteralreadyranforthisfiltervalue = true;
+                return false;
+            }
+        });
+        if (!isremovefilteralreadyranforthisfiltervalue) {
+            RemoveAppliedSearchEventsFilters(GlobalLocationFilterNameContsant, "EventsLocations", searchkeywordbtnid, EventLocationFilterQueryLocalStorageKey);
+            EventsLocationArrayForSelectedFilterValues.push(searchkeyword);
+        }
+    }
+}
+
+$("#EventsLocations").keyup(function (e) {
+    // dispaly clear field button and distance radio buttons when user starts typing in search box
+    var searchkeyword = $.trim($("#EventsLocations").val());
+    if (searchkeyword != '') {
+        $("#ClearEventsLocationField").removeClass("hide-dom-element");
+    } else {
+        // hide clear location field button
+        $("#ClearEventsLocationField").addClass("hide-dom-element");
+
+        // delete location filter button
+        if ($('button[name="' + GlobalLocationSearchFilterBtnNameConstant + '"]').length > 0) {
+            $('button[name="' + GlobalLocationSearchFilterBtnNameConstant + '"]').remove();
+        }
+
+        // deselect distance radio buttons, remove dynamic filter applied button and hide the content
+        $('input[name="distancepreference"]').prop("checked", false);
+        $("#LocationDistanceContent").addClass("hide-dom-element");
+        if ($('button[name="' + GlobalDistanceRadioButtonNameConstant + '"]').length > 0) {
+            $('button[name="' + GlobalDistanceRadioButtonNameConstant + '"]').remove();
+        }
+
+        // hide applied filters section when no filters are applied
+        if ($(".filterbtn-container").is(":empty")) {
+            $(".applied-filters").hide();
+        }
+
+        // make ajax call
+        var emptyvalue = '';
+        AjaxCallForSearchKeywordEventsData(GlobalLocationFilterNameContsant, emptyvalue);
+    }
+
+    // if user starts typing change autocomplete source to all location values, 
+    // if the textbox is empty display geolocation values on focus
+    var locationsarray = [];
+    if (searchkeyword === '') {
+        if (GeoLocationLatitudeValue != null && GeoLocationLongitueValue !== null) {
+            if ($("#GeoLocationEventsList").length > 0) {
+                var defaultcontent = { value: "Events near current location", label: "Events near current location", disabled: true };
+                locationsarray.push(defaultcontent);
+                $("#GeoLocationEventsList li").each(function () {
+                    locationsarray.push({ value: $(this).text(), label: $(this).text(), disabled: false });
+                });
+            } else {
+                var defaultcontent = { value: "No events near current location", label: "No events near current location", disabled: true };
+                locationsarray.push(defaultcontent);
+                $("#AllEventsLocationList li").each(function () {
+                    locationsarray.push({ value: $(this).text(), label: $(this).text(), disabled: false });
+                });
+            }
+        } else {
+            $("#AllEventsLocationList li").each(function () {
+                locationsarray.push({ value: $(this).text(), label: $(this).text(), disabled: false });
+            });
+        }
+    } else {
+        $("#AllEventsLocationList li").each(function () {
+            locationsarray.push({ value: $(this).text(), label: $(this).text(), disabled: false });
+        });
+    }
+    TriggerAutoCompleteFunctionality(locationsarray);
+
+    // enables search functionality when enter is pressed
+    if (e.keyCode == 13) {
+        $(this).trigger("enterKey");
+    }
+});
+
+$('input[name="distancepreference"]').on('change', function () {
+    GlobalLastFocusedElement = this.id;
+    var dynamicbuttontext = GlobalDistanceRadioButtonNameConstant;
+    var selecteddistance = $(this).val();
+    var selecteddistancebtnid = (GlobalDistanceFilterNameConstant + selecteddistance).replace(/[^A-Z0-9]/ig, "") + "PreferenceApplied";
+    // to make sure location filter is also available when distance radius is selected
+    var searchkeyword = $.trim($("#EventsLocations").val());
+    var searchkeywordbtnid = (GlobalLocationFilterNameContsant + searchkeyword).replace(/[^A-Z0-9]/ig, "") + "PreferenceApplied";
+
+    if ($(this).is(":checked")) {
+        CreateDynamicAppliedSearchFilterButton(GlobalLocationSearchFilterBtnNameConstant, searchkeyword, searchkeywordbtnid);
+        RemoveLocationSearchFilterButton(searchkeyword, searchkeywordbtnid);
+        CreateDynamicFilterButtonForRadioButtons(selecteddistance, dynamicbuttontext, selecteddistancebtnid);
+        AjaxCallForDistanceRadiusEventsData(GlobalDistanceFilterNameConstant, selecteddistance, GlobalLocationFilterNameContsant, searchkeyword);
+
+        // check if the remove applied filter is already applied during the page load for this selected value.
+        // if already applied skip this remove functionality or else apply it
+        var isremovealreadyexists = false;
+        $.each(LocationDistanceArrayForDefaultRemoveFilterAppliedFromURL, function (index, value) {
+            if (value == selecteddistance) {
+                isremovealreadyexists = true;
+                return false;
+            }
+        });
+        if (!isremovealreadyexists) {
+            if (LocationDistanceArrayForSelectedValues.length === 0) {
+                RemoveAppliedFilters(GlobalDistanceFilterNameConstant, selecteddistance, selecteddistancebtnid, EventLocationDistanceFilterQueryLocalStorageKey);
+                LocationDistanceArrayForSelectedValues.push(selecteddistance);
+            } else {
+                var isremovefilteralreadyranforthisfiltervalue = false;
+                $.each(LocationDistanceArrayForSelectedValues, function (selectedfiltervalueindex, selectedfiltervalue) {
+                    if (selecteddistance === selectedfiltervalue) {
+                        isremovefilteralreadyranforthisfiltervalue = true;
+                        return false;
+                    }
+                });
+                if (!isremovefilteralreadyranforthisfiltervalue) {
+                    RemoveAppliedFilters(GlobalDistanceFilterNameConstant, selecteddistance, selecteddistancebtnid, EventLocationDistanceFilterQueryLocalStorageKey);
+                    LocationDistanceArrayForSelectedValues.push(selecteddistance);
+                }
+            }
+        }
+
+        // clear distance filter in localstorage before storing the filter value
+        localStorage.removeItem(EventLocationDistanceFilterQueryLocalStorageKey);
+        // add selected value into local storage
+        var lsquerystring = GlobalDistanceFilterNameConstant + "=" + selecteddistance.replace(/\%26/g, "&");
+        AddFilterQueryToLocalStorage(EventLocationDistanceFilterQueryLocalStorageKey, lsquerystring);
+    }
+});
+
+function AjaxCallForDistanceRadiusEventsData(distancefiltername, distancefiltervalue, locationfiltername, locationfiltervalue) {
+    var eventsURL = decodeURI(window.location.href);
+    if (distancefiltervalue.length > 0) {
+        var distancequerystring = distancefiltername + "=" + distancefiltervalue.replace(/\&/g, "%26");
+    } else {
+        var distancequerystring = distancefiltername + "=" + distancefiltervalue;
+    }
+
+    if (locationfiltervalue.length > 0) {
+        var locationquerystring = locationfiltername + "=" + locationfiltervalue.replace(/\&/g, "%26");
+    } else {
+        var locationquerystring = locationfiltername + "=" + locationfiltervalue;
+    }
+
+    var islistcardview = false;
+    if ($("#EventListCardToggleButton").hasClass("listcard-togglebtn-active")) {
+        islistcardview = true;
+    }
+
+    if (eventsURL.indexOf("?") > -1) {
+        var urloriginandpatharray = eventsURL.split("?");
+
+        // check if the url path already has searchkeyword filter applied
+        if (urloriginandpatharray[1].indexOf(distancefiltername + "=") > -1 || urloriginandpatharray[1].indexOf(locationfiltername + "=") > -1) {
+
+            // split the url path, search for already applied search filter and remove it
+            var urlpatharray = urloriginandpatharray[1].split("&");
+            for (var i = parseInt(0); i < urlpatharray.length; i++) {
+                var arrayvalue = urlpatharray[i];
+                if (arrayvalue.indexOf(distancefiltername + "=") > -1 || arrayvalue.indexOf(locationfiltername + "=") > -1) {
+                    urlpatharray.splice(i, 1);
+                    i--;
+                }
+            }
+            if (locationfiltervalue.length > 0) {
+                urlpatharray.push(locationquerystring);
+            }
+            if (locationfiltervalue.length > 0 && distancefiltervalue.length > 0) {
+                urlpatharray.push(distancequerystring);
+            }
+
+            urloriginandpatharray[1] = urlpatharray.join("&");
+        } else {
+            if (distancefiltervalue.length > 0) {
+                urloriginandpatharray[1] = urloriginandpatharray[1] + "&" + locationquerystring + "&" + distancequerystring;
+            }
+        }
+
+        if (urloriginandpatharray[1].length > 0) {
+            var ajaxeventsurl = encodeURI(urloriginandpatharray.join("?"));
+        } else {
+            if (urloriginandpatharray.length > 2) {
+                var newfilteredurloriginandpatharray = RemoveNullorEmptyElementsFromArray(urloriginandpatharray);
+                var ajaxeventsurl = encodeURI(newfilteredurloriginandpatharray.join("?"));
+            } else {
+                var ajaxeventsurl = encodeURI(urloriginandpatharray[0]);
+            }
+        }
+
+        // make LangugeFilterApplied to false only if all languge filters are removed
+        if (ajaxeventsurl.indexOf(GlobalLangugeFilterNameContsant + "=") > -1) {
+            LangugeFilterApplied = true;
+        } else {
+            LangugeFilterApplied = false;
+        }
+
+        window.history.pushState({}, null, ajaxeventsurl);
+        $("#ProgressBarContainer").removeClass("hide-dom-element");
+        $.ajax({
+            type: "GET",
+            url: ajaxeventsurl,
+            data: { returnPartialview: true, enableListCardView: islistcardview, latitudeValue: GeoLocationLatitudeValue, longitudeValue: GeoLocationLongitueValue, isLangugeFilterApplied: LangugeFilterApplied, isChineseBowserLocation: IsBrowserLocationInChina },
+            success: function (response) {
+                if (response) {
+                    favDataLoaded = false;
+                    $("#event-summary-panel").html(response.eventsPartialView);
+                    $("#events-filter-panel").html(response.filterLargeScreenPartialView);
+                    $("#events-responsive-filterpanel").html(response.filterSmallScreenPartialView);
+                    updateFavCount();
+                    $("#ProgressBarContainer").addClass("hide-dom-element");
+                    Refinedresultcountfocus();
+                }
+            }
+        });
+    } else {
+        if (locationfiltervalue.length > 0 && distancefiltervalue.length > 0) {
+            var ajaxeventsurl = encodeURI(eventsURL + "?" + locationquerystring + "&" + distancequerystring);
+        } else {
+            var ajaxeventsurl = encodeURI(eventsURL);
+        }
+
+        // make LangugeFilterApplied to false only if all languge filters are removed
+        if (ajaxeventsurl.indexOf(GlobalLangugeFilterNameContsant + "=") > -1) {
+            LangugeFilterApplied = true;
+        } else {
+            LangugeFilterApplied = false;
+        }
+
+        window.history.pushState({}, null, ajaxeventsurl);
+        $("#ProgressBarContainer").removeClass("hide-dom-element");
+        $.ajax({
+            type: "GET",
+            url: ajaxeventsurl,
+            data: { returnPartialview: true, enableListCardView: islistcardview, latitudeValue: GeoLocationLatitudeValue, longitudeValue: GeoLocationLongitueValue, isLangugeFilterApplied: LangugeFilterApplied, isChineseBowserLocation: IsBrowserLocationInChina },
+            success: function (response) {
+                if (response) {
+                    favDataLoaded = false;
+                    $("#event-summary-panel").html(response.eventsPartialView);
+                    $("#events-filter-panel").html(response.filterLargeScreenPartialView);
+                    $("#events-responsive-filterpanel").html(response.filterSmallScreenPartialView);
+                    updateFavCount();
+                    $("#ProgressBarContainer").addClass("hide-dom-element");
+                    Refinedresultcountfocus();
+                }
+            }
+        });
+    }
+}
+
+$("#ClearEventsLocationField").click(function () {
+    GlobalLastFocusedElement = "EventsLocations";
+    var searchkeyword = $.trim($("#EventsLocations").val());
+    var searchkeywordbtnid = (GlobalLocationFilterNameContsant + searchkeyword).replace(/[^A-Z0-9]/ig, "") + "PreferenceApplied";
+    $("#ClearEventsLocationField").addClass("hide-dom-element");
+
+    var emptyvalue = '';
+    $("#EventsLocations").val(emptyvalue);
+
+    // remove location filter applied button
+    if ($("#" + searchkeywordbtnid).length > 0) {
+        $("#" + searchkeywordbtnid).remove();
+    }
+    if ($('button[name="' + GlobalLocationSearchFilterBtnNameConstant + '"]').length > 0) {
+        $('button[name="' + GlobalLocationSearchFilterBtnNameConstant + '"]').remove();
+    }
+
+    // deselect distance radio buttons, remove dynamic filter applied button and hide the content
+    $('input[name="distancepreference"]').prop("checked", false);
+    $("#LocationDistanceContent").addClass("hide-dom-element");
+    if ($('button[name="' + GlobalDistanceRadioButtonNameConstant + '"]').length > 0) {
+        $('button[name="' + GlobalDistanceRadioButtonNameConstant + '"]').remove();
+    }
+
+    // hide applied filters section when no filters are applied
+    if ($(".filterbtn-container").is(":empty")) {
+        $(".applied-filters").hide();
+    }
+
+    // delete location filter value from localstorage
+    localStorage.removeItem(EventLocationFilterQueryLocalStorageKey);
+    //delete location distance value from localstorage
+    localStorage.removeItem(EventLocationDistanceFilterQueryLocalStorageKey);
+
+    AjaxCallForSearchKeywordEventsData(GlobalLocationFilterNameContsant, emptyvalue);
+});
+
+$('#ClearEventLanguage').on('click', function () {
+    GlobalLastFocusedElement = "LanguagePrefernceLabel";
+    var eventsURL = decodeURI(window.location.href);
+
+    var islistcardview = false;
+    if ($("#EventListCardToggleButton").hasClass("listcard-togglebtn-active")) {
+        islistcardview = true;
+    }
+
+    // delete language filters in localstorage
+    localStorage.removeItem(LanguageFilterQueryLocalStorageKey);
+
+    if (eventsURL.indexOf("?") > -1) {
+        var urloriginandpatharray = eventsURL.split("?");
+        var urlpatharray = urloriginandpatharray[1].split("&");
+        for (var i = parseInt(0); i < urlpatharray.length; i++) {
+            if (urlpatharray[i].indexOf(GlobalLangugeFilterNameContsant + "=") > -1) {
+                // remove filter applied button for url params
+                var paramvaluearray = urlpatharray[i].split("=");
+                var paramvalue = paramvaluearray[1];
+                var paramfilterappliedbtnid = GlobalLangugeFilterNameContsant + paramvalue.replace(/[0-9`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '').replace(/ /g, '') + "PreferenceApplied";
+                if ($("#" + paramfilterappliedbtnid).length > 0) {
+                    $("#" + paramfilterappliedbtnid).remove();
+                }
+
+                urlpatharray.splice(i, 1);
+                i--;
+            }
+        }
+        urloriginandpatharray[1] = urlpatharray.join("&");
+        if (urloriginandpatharray[1].length > 0) {
+            var ajaxeventsurl = encodeURI(urloriginandpatharray.join("?"));
+        } else {
+            if (urloriginandpatharray.length > 2) {
+                var newfilteredurloriginandpatharray = RemoveNullorEmptyElementsFromArray(urloriginandpatharray);
+                var ajaxeventsurl = encodeURI(newfilteredurloriginandpatharray.join("?"));
+            } else {
+                var ajaxeventsurl = encodeURI(urloriginandpatharray[0]);
+            }
+        }
+
+        // make LangugeFilterApplied to false only if all languge filters are removed
+        if (ajaxeventsurl.indexOf(GlobalLangugeFilterNameContsant + "=") > -1) {
+            LangugeFilterApplied = true;
+        } else {
+            LangugeFilterApplied = false;
+        }
+
+        window.history.pushState({}, null, ajaxeventsurl);
+        $("#ProgressBarContainer").removeClass("hide-dom-element");
+        $.ajax({
+            type: "GET",
+            url: ajaxeventsurl,
+            data: { returnPartialview: true, enableListCardView: islistcardview, latitudeValue: GeoLocationLatitudeValue, longitudeValue: GeoLocationLongitueValue, isLangugeFilterApplied: LangugeFilterApplied, isChineseBowserLocation: IsBrowserLocationInChina },
+            success: function (response) {
+                if (response) {
+                    favDataLoaded = false;
+                    IsEventLanguageFilterExpaned = true;
+                    $("#event-summary-panel").html(response.eventsPartialView);
+                    $("#events-filter-panel").html(response.filterLargeScreenPartialView);
+                    $("#events-responsive-filterpanel").html(response.filterSmallScreenPartialView);
+                    updateFavCount();
+                    $("#ProgressBarContainer").addClass("hide-dom-element");
+                    Refinedresultcountfocus();
+                }
+            }
+        });
+    }
+    // show all languges filter list
+    $('input[name="language"]').prop('checked', false);
+
+    // hide applied filters section when no filters are applied
+    if ($(".filterbtn-container").is(":empty")) {
+        $(".applied-filters").hide();
+    }
+
+    // hide clear event languge button
+    $('#ClearEventLanguage').hide();
+});
+
+$('#ClearEventdeliveryLanguage').on('click', function () {
+    GlobalLastFocusedElement = "deliveryLanguagePrefernceLabel";
+    var eventsURL = decodeURI(window.location.href);
+
+    var islistcardview = false;
+    if ($("#EventListCardToggleButton").hasClass("listcard-togglebtn-active")) {
+        islistcardview = true;
+    }
+
+    // delete delivery language filters in localstorage
+    localStorage.removeItem(deliveryLanguageFilterQueryLocalStorageKey);
+
+    if (eventsURL.indexOf("?") > -1) {
+        var urloriginandpatharray = eventsURL.split("?");
+        var urlpatharray = urloriginandpatharray[1].split("&");
+        for (var i = parseInt(0); i < urlpatharray.length; i++) {
+            if (urlpatharray[i].indexOf(GlobaldeliveryLangugeFilterNameContsant + "=") > -1) {
+                // remove filter applied button for url params
+                var paramvaluearray = urlpatharray[i].split("=");
+                var paramvalue = paramvaluearray[1];
+                var paramfilterappliedbtnid = GlobaldeliveryLangugeFilterNameContsant + paramvalue.replace(/[0-9`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '').replace(/ /g, '') + "PreferenceApplied";
+                if ($("#" + paramfilterappliedbtnid).length > 0) {
+                    $("#" + paramfilterappliedbtnid).remove();
+                }
+
+                urlpatharray.splice(i, 1);
+                i--;
+            }
+        }
+        urloriginandpatharray[1] = urlpatharray.join("&");
+        if (urloriginandpatharray[1].length > 0) {
+            var ajaxeventsurl = encodeURI(urloriginandpatharray.join("?"));
+        } else {
+            if (urloriginandpatharray.length > 2) {
+                var newfilteredurloriginandpatharray = RemoveNullorEmptyElementsFromArray(urloriginandpatharray);
+                var ajaxeventsurl = encodeURI(newfilteredurloriginandpatharray.join("?"));
+            } else {
+                var ajaxeventsurl = encodeURI(urloriginandpatharray[0]);
+            }
+        }
+
+        // make delivery LangugeFilterApplied to false only if all  delivery languge filters are removed
+        if (ajaxeventsurl.indexOf(GlobaldeliveryLangugeFilterNameContsant + "=") > -1) {
+            deliveryLangugeFilterApplied = true;
+        } else {
+            deliveryLangugeFilterApplied = false;
+        }
+
+        window.history.pushState({}, null, ajaxeventsurl);
+        $("#ProgressBarContainer").removeClass("hide-dom-element");
+        $.ajax({
+            type: "GET",
+            url: ajaxeventsurl,
+            data: { returnPartialview: true, enableListCardView: islistcardview, latitudeValue: GeoLocationLatitudeValue, longitudeValue: GeoLocationLongitueValue, isdeliveryLangugeFilterApplied: deliveryLangugeFilterApplied, isChineseBowserLocation: IsBrowserLocationInChina },
+            success: function (response) {
+                if (response) {
+                    favDataLoaded = false;
+                    IsEventdeliveryLanguageFilterExpaned = true;
+                    $("#event-summary-panel").html(response.eventsPartialView);
+                    $("#events-filter-panel").html(response.filterLargeScreenPartialView);
+                    $("#events-responsive-filterpanel").html(response.filterSmallScreenPartialView);
+                    updateFavCount();
+                    $("#ProgressBarContainer").addClass("hide-dom-element");
+                    Refinedresultcountfocus();
+                }
+            }
+        });
+    }
+    // show all languges filter list
+    $('input[name="deliverylanguage"]').prop('checked', false);
+
+    // hide applied filters section when no filters are applied
+    if ($(".filterbtn-container").is(":empty")) {
+        $(".applied-filters").hide();
+    }
+
+    // hide clear event languge button
+    $('#ClearEventdeliveryLanguage').hide();
+});
+
+$('#ClearEventsubtitleLanguage').on('click', function () {
+    GlobalLastFocusedElement = "subtitleLanguagePrefernceLabel";
+    var eventsURL = decodeURI(window.location.href);
+
+    var islistcardview = false;
+    if ($("#EventListCardToggleButton").hasClass("listcard-togglebtn-active")) {
+        islistcardview = true;
+    }
+
+    // delete subtitle language filters in localstorage
+    localStorage.removeItem(subtitleLanguageFilterQueryLocalStorageKey);
+
+    if (eventsURL.indexOf("?") > -1) {
+        var urloriginandpatharray = eventsURL.split("?");
+        var urlpatharray = urloriginandpatharray[1].split("&");
+        for (var i = parseInt(0); i < urlpatharray.length; i++) {
+            if (urlpatharray[i].indexOf(GlobalsubtitleLangugeFilterNameContsant + "=") > -1) {
+                // remove filter applied button for url params
+                var paramvaluearray = urlpatharray[i].split("=");
+                var paramvalue = paramvaluearray[1];
+                var paramfilterappliedbtnid = GlobalsubtitleLangugeFilterNameContsant + paramvalue.replace(/[0-9`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '').replace(/ /g, '') + "PreferenceApplied";
+                if ($("#" + paramfilterappliedbtnid).length > 0) {
+                    $("#" + paramfilterappliedbtnid).remove();
+                }
+
+                urlpatharray.splice(i, 1);
+                i--;
+            }
+        }
+        urloriginandpatharray[1] = urlpatharray.join("&");
+        if (urloriginandpatharray[1].length > 0) {
+            var ajaxeventsurl = encodeURI(urloriginandpatharray.join("?"));
+        } else {
+            if (urloriginandpatharray.length > 2) {
+                var newfilteredurloriginandpatharray = RemoveNullorEmptyElementsFromArray(urloriginandpatharray);
+                var ajaxeventsurl = encodeURI(newfilteredurloriginandpatharray.join("?"));
+            } else {
+                var ajaxeventsurl = encodeURI(urloriginandpatharray[0]);
+            }
+        }
+
+        // make subtitle LangugeFilterApplied to false only if all  subtitle languge filters are removed
+        if (ajaxeventsurl.indexOf(GlobalsubtitleLangugeFilterNameContsant + "=") > -1) {
+            subtitleLangugeFilterApplied = true;
+        } else {
+            subtitleLangugeFilterApplied = false;
+        }
+
+        window.history.pushState({}, null, ajaxeventsurl);
+        $("#ProgressBarContainer").removeClass("hide-dom-element");
+        $.ajax({
+            type: "GET",
+            url: ajaxeventsurl,
+            data: { returnPartialview: true, enableListCardView: islistcardview, latitudeValue: GeoLocationLatitudeValue, longitudeValue: GeoLocationLongitueValue, isChineseBowserLocation: IsBrowserLocationInChina },
+            success: function (response) {
+                if (response) {
+                    favDataLoaded = false;
+                    IsEventsubtitleLanguageFilterExpaned = true;
+                    $("#event-summary-panel").html(response.eventsPartialView);
+                    $("#events-filter-panel").html(response.filterLargeScreenPartialView);
+                    $("#events-responsive-filterpanel").html(response.filterSmallScreenPartialView);
+                    updateFavCount();
+                    $("#ProgressBarContainer").addClass("hide-dom-element");
+                    Refinedresultcountfocus();
+                }
+            }
+        });
+    }
+    // show all languges filter list
+    $('input[name="subtitlelanguage"]').prop('checked', false);
+
+    // hide applied filters section when no filters are applied
+    if ($(".filterbtn-container").is(":empty")) {
+        $(".applied-filters").hide();
+    }
+
+    // hide clear event languge button
+    $('#ClearEventsubtitleLanguage').hide();
+});
+
+$('#ClearAllPreferences').on('click', function () {
+    GlobalLastFocusedElement = "LanguagePrefernceLabel";
+    var clearallpreferencesqueryparams = [];
+
+    // get applied language preference values and remove applied filter buttons
+    $('input[name="language"]:checked').each(function () {
+        var languagefiltername = this.name;
+        var selectedlanguage = $(this).val();
+        var languagequeryparam = languagefiltername + "=" + selectedlanguage;
+        var selectedanguagebtnid = GlobalLangugeFilterNameContsant + selectedlanguage.replace(/[0-9`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '').replace(/ /g, '') + "PreferenceApplied";
+        if ($("#" + selectedanguagebtnid).length > 0) {
+            $("#" + selectedanguagebtnid).remove();
+        }
+        clearallpreferencesqueryparams.push(languagequeryparam);
+    });
+    $('input[name="deliverylanguage"]:checked').each(function () {
+        var deliverylanguagefiltername = this.name;
+        var selecteddeliverylanguage = $(this).val();
+        var deliverylanguagequeryparam = deliverylanguagefiltername + "=" + selecteddeliverylanguage;
+        var selecteddeliverylanguagebtnid = GlobaldeliveryLangugeFilterNameContsant + selecteddeliverylanguage.replace(/[0-9`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '').replace(/ /g, '') + "PreferenceApplied";
+        if ($("#" + selecteddeliverylanguagebtnid).length > 0) {
+            $("#" + selecteddeliverylanguagebtnid).remove();
+        }
+        clearallpreferencesqueryparams.push(deliverylanguagequeryparam);
+    });
+    $('input[name="subtitlelanguage"]:checked').each(function () {
+        var subtitlelanguagefiltername = this.name;
+        var selectedsubtitlelanguage = $(this).val();
+        var subtitlelanguagequeryparam = subtitlelanguagefiltername + "=" + selectedsubtitlelanguage;
+        var selectedsubtitlelanguagebtnid = GlobalsubtitleLangugeFilterNameContsant + selectedsubtitlelanguage.replace(/[0-9`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '').replace(/ /g, '') + "PreferenceApplied";
+        if ($("#" + selectedsubtitlelanguagebtnid).length > 0) {
+            $("#" + selectedsubtitlelanguagebtnid).remove();
+        }
+        clearallpreferencesqueryparams.push(subtitlelanguagequeryparam);
+    });
+    // get applied language filter values from url which are missed during filter checkbox validations
+    var clearlanguagepreferencequeryparamsfromURL = GetClearFilterQueryParamsFromUrl(GlobalLangugeFilterNameContsant);
+    if (clearlanguagepreferencequeryparamsfromURL.length > 0) {
+        $.each(clearlanguagepreferencequeryparamsfromURL, function (urlparamindex, urlparamvalue) {
+            var isfilteravailableinurl = true;
+            $.each(clearallpreferencesqueryparams, function (index, value) {
+                if (urlparamvalue === value) {
+                    isfilteravailableinurl = false;
+                }
+            });
+            if (isfilteravailableinurl) {
+                clearallpreferencesqueryparams.push(urlparamvalue);
+
+                // remove filter applied button for url params
+                var paramvaluearray = urlparamvalue.split("=");
+                var paramvalue = paramvaluearray[1];
+                var paramfilterappliedbtnid = GlobalLangugeFilterNameContsant + paramvalue.replace(/[0-9`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '').replace(/ /g, '') + "PreferenceApplied";
+                if ($("#" + paramfilterappliedbtnid).length > 0) {
+                    $("#" + paramfilterappliedbtnid).remove();
+                }
+            }
+        });
+    }
+    // get applied delivery language filter values from url which are missed during filter checkbox validations
+    var cleardeliverylanguagepreferencequeryparamsfromURL = GetClearFilterQueryParamsFromUrl(GlobaldeliveryLangugeFilterNameContsant);
+    if (cleardeliverylanguagepreferencequeryparamsfromURL.length > 0) {
+        $.each(cleardeliverylanguagepreferencequeryparamsfromURL, function (urlparamindex, urlparamvalue) {
+            var isfilteravailableinurl = true;
+            $.each(clearallpreferencesqueryparams, function (index, value) {
+                if (urlparamvalue === value) {
+                    isfilteravailableinurl = false;
+                }
+            });
+            if (isfilteravailableinurl) {
+                clearallpreferencesqueryparams.push(urlparamvalue);
+
+                // remove filter applied button for url params
+                var paramvaluearray = urlparamvalue.split("=");
+                var paramvalue = paramvaluearray[1];
+                var paramfilterappliedbtnid = GlobaldeliveryLangugeFilterNameContsant + paramvalue.replace(/[0-9`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '').replace(/ /g, '') + "PreferenceApplied";
+                if ($("#" + paramfilterappliedbtnid).length > 0) {
+                    $("#" + paramfilterappliedbtnid).remove();
+                }
+            }
+        });
+    }
+
+    // get applied subtitle language filter values from url which are missed during filter checkbox validations
+    var clearsubtitlelanguagepreferencequeryparamsfromURL = GetClearFilterQueryParamsFromUrl(GlobalsubtitleLangugeFilterNameContsant);
+    if (clearsubtitlelanguagepreferencequeryparamsfromURL.length > 0) {
+        $.each(clearsubtitlelanguagepreferencequeryparamsfromURL, function (urlparamindex, urlparamvalue) {
+            var isfilteravailableinurl = true;
+            $.each(clearallpreferencesqueryparams, function (index, value) {
+                if (urlparamvalue === value) {
+                    isfilteravailableinurl = false;
+                }
+            });
+            if (isfilteravailableinurl) {
+                clearallpreferencesqueryparams.push(urlparamvalue);
+
+                // remove filter applied button for url params
+                var paramvaluearray = urlparamvalue.split("=");
+                var paramvalue = paramvaluearray[1];
+                var paramfilterappliedbtnid = GlobalsubtitleLangugeFilterNameContsant + paramvalue.replace(/[0-9`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '').replace(/ /g, '') + "PreferenceApplied";
+                if ($("#" + paramfilterappliedbtnid).length > 0) {
+                    $("#" + paramfilterappliedbtnid).remove();
+                }
+            }
+        });
+    }
+    // get applied event time preference values and remove applied filter button
+    var starttimefiltername = GlobalStartTimeFilterNameContsant;
+    var starttime12hrsformat = $("#EventStartTime").val();
+    var starttime24hrsformat = ConvertTo24HrsTime(starttime12hrsformat);
+    var starttimequeryparam = starttimefiltername + "=" + starttime24hrsformat;
+    var endtimefiltername = GlobalEndTimeFilterNameContsant;
+    var endtime12hrsformat = $("#EventEndTime").val();
+    var endtime24hrsformat = ConvertTo24HrsTime(endtime12hrsformat);
+    var endtimequeryparam = endtimefiltername + "=" + endtime24hrsformat;
+
+    if (starttime24hrsformat != "00:00" || endtime24hrsformat != "23:59") {
+        var selectedtimeperiod = starttime12hrsformat + "-" + endtime12hrsformat;
+        var selctedtimeperiodbtnid = (selectedtimeperiod).replace(/[^A-Z0-9]/ig, "") + "PreferenceApplied";
+        if ($("#" + selctedtimeperiodbtnid).length > 0) {
+            $("#" + selctedtimeperiodbtnid).remove();
+        }
+        clearallpreferencesqueryparams.push(starttimequeryparam);
+        clearallpreferencesqueryparams.push(endtimequeryparam);
+    }
+
+    // get applied format preference values and remove applied filter buttons
+    $('input[name="format"]:checked').each(function () {
+        var formatfiltername = this.name;
+        var selectedformat = $(this).val();
+        var selectedformatbtnid = (GlobalFormatFilterNameContsant + selectedformat).replace(/[^A-Z0-9]/ig, "") + "PreferenceApplied";
+        var formatqueryparam = formatfiltername + "=" + selectedformat;
+        if ($("#" + selectedformatbtnid).length > 0) {
+            $("#" + selectedformatbtnid).remove();
+        }
+        clearallpreferencesqueryparams.push(formatqueryparam);
+    });
+    // get applied format filter values from url which are missed during filter checkbox validations
+    var cleareventformatpreferencequeryparamsfromURL = GetClearFilterQueryParamsFromUrl(GlobalFormatFilterNameContsant);
+    if (cleareventformatpreferencequeryparamsfromURL.length > 0) {
+        $.each(cleareventformatpreferencequeryparamsfromURL, function (urlparamindex, urlparamvalue) {
+            var isfilteravailableinurl = true;
+            $.each(clearallpreferencesqueryparams, function (index, value) {
+                if (urlparamvalue === value) {
+                    isfilteravailableinurl = false;
+                }
+            });
+            if (isfilteravailableinurl) {
+                clearallpreferencesqueryparams.push(urlparamvalue);
+
+                // remove filter applied button for url params
+                var paramvaluearray = urlparamvalue.split("=");
+                var paramvalue = paramvaluearray[1];
+                var paramfilterappliedbtnid = (GlobalFormatFilterNameContsant + paramvalue).replace(/[^A-Z0-9]/ig, "") + "PreferenceApplied";
+                if ($("#" + paramfilterappliedbtnid).length > 0) {
+                    $("#" + paramfilterappliedbtnid).remove();
+                }
+            }
+        });
+    }
+
+    // get applied location preference value and remove applied filter button
+    var locationfiltername = GlobalLocationFilterNameContsant;
+    var selectedlocation = $.trim($("#EventsLocations").val());
+    if (selectedlocation != '') {
+        var selectedlocationbtnid = (GlobalLocationFilterNameContsant + selectedlocation).replace(/[^A-Z0-9]/ig, "") + "PreferenceApplied";
+        var locationqueryparam = locationfiltername + "=" + selectedlocation;
+        if ($("#" + selectedlocationbtnid).length > 0) {
+            $("#" + selectedlocationbtnid).remove();
+        }
+        clearallpreferencesqueryparams.push(locationqueryparam);
+    }
+    // get applied distance preference values and remove applied filter buttons
+    $('input[name="distancepreference"]:checked').each(function () {
+        var distancefiltername = GlobalDistanceFilterNameConstant;
+        var selecteddistance = $(this).val();
+        var selecteddistancebtnid = (GlobalDistanceFilterNameConstant + selecteddistance).replace(/[^A-Z0-9]/ig, "") + "PreferenceApplied";
+        var distancequeryparam = distancefiltername + "=" + selecteddistance;
+        if ($("#" + selecteddistancebtnid).length > 0) {
+            $("#" + selecteddistancebtnid).remove();
+        }
+        clearallpreferencesqueryparams.push(distancequeryparam);
+    });
+
+    // get applied timezone switch preference values and remove applied filter buttons
+    $("#SwitchEventTimeZoneToUserLocale").each(function () {
+        var selectedtimezoneswitch = $(this).val();
+        var selectedtimezoneswitchbtnid = (GlobalSwitchTimeZoneFilterNameContsant + selectedtimezoneswitch).replace(/[^A-Z0-9]/ig, "") + "PreferenceApplied";
+        var switchtimezonequeryparam = GlobalSwitchTimeZoneFilterNameContsant + "=" + 1;
+        if ($("#" + selectedtimezoneswitchbtnid).length > 0) {
+            $("#" + selectedtimezoneswitchbtnid).remove();
+        }
+        clearallpreferencesqueryparams.push(switchtimezonequeryparam);
+    });
+    // get applied timezone switch filter values from url which are missed during filter checkbox validations
+    var cleareventtimezoneswitchpreferencequeryparamsfromURL = GetClearFilterQueryParamsFromUrl(GlobalSwitchTimeZoneFilterNameContsant);
+    if (cleareventtimezoneswitchpreferencequeryparamsfromURL.length > 0) {
+        $.each(cleareventtimezoneswitchpreferencequeryparamsfromURL, function (urlparamindex, urlparamvalue) {
+            var isfilteravailableinurl = true;
+            $.each(clearallpreferencesqueryparams, function (index, value) {
+                if (urlparamvalue === value) {
+                    isfilteravailableinurl = false;
+                }
+            });
+            if (isfilteravailableinurl) {
+                clearallpreferencesqueryparams.push(urlparamvalue);
+
+                // remove filter applied button for url params
+                var paramvaluearray = urlparamvalue.split("=");
+                var paramvalue = paramvaluearray[1];
+                var paramfilterappliedbtnid = (GlobalSwitchTimeZoneFilterNameContsant + paramvalue).replace(/[^A-Z0-9]/ig, "") + "PreferenceApplied";
+                if ($("#" + paramfilterappliedbtnid).length > 0) {
+                    $("#" + paramfilterappliedbtnid).remove();
+                }
+            }
+        });
+    }
+
+    // delete preferences from localstorage
+    localStorage.removeItem(LanguageFilterQueryLocalStorageKey);
+    localStorage.removeItem(deliveryLanguageFilterQueryLocalStorageKey);
+    localStorage.removeItem(subtitleLanguageFilterQueryLocalStorageKey);
+    localStorage.removeItem(ShowInLocalTimeFilterQueryLocalStorageKey);
+    localStorage.removeItem(EventStartTimeIntervalStartingValueLocalStorageKey);
+    localStorage.removeItem(EventStartTimeIntervalEndValueLocalStorageKey);
+    localStorage.removeItem(EventFormatFilterQueryLocalStorageKey);
+    localStorage.removeItem(EventLocationFilterQueryLocalStorageKey);
+    localStorage.removeItem(EventLocationDistanceFilterQueryLocalStorageKey);
+
+    AjaxCallForClearAllPreference(clearallpreferencesqueryparams);
+    ResetPreferenceValueInfilterMenu();
+});
+
+function AjaxCallForClearAllPreference(preferencesqueryparams) {
+    var eventsURL = decodeURI(window.location.href);
+
+    var islistcardview = false;
+    if ($("#EventListCardToggleButton").hasClass("listcard-togglebtn-active")) {
+        islistcardview = true;
+    }
+
+    if (eventsURL.indexOf("?") > -1) {
+        var urloriginandpatharray = eventsURL.split("?");
+        $.each(preferencesqueryparams, function (index, value) {
+            var urlpatharray = urloriginandpatharray[1].split("&");
+            for (var i = parseInt(0); i < urlpatharray.length; i++) {
+                if (urlpatharray[i] === value) {
+                    urlpatharray.splice(i, 1);
+                    i--;
+                }
+            }
+            urloriginandpatharray[1] = urlpatharray.join("&");
+        });
+        if (urloriginandpatharray[1].length > 0) {
+            var ajaxeventsurl = encodeURI(urloriginandpatharray.join("?"));
+        } else {
+            if (urloriginandpatharray.length > 2) {
+                var newfilteredurloriginandpatharray = RemoveNullorEmptyElementsFromArray(urloriginandpatharray);
+                var ajaxeventsurl = encodeURI(newfilteredurloriginandpatharray.join("?"));
+            } else {
+                var ajaxeventsurl = encodeURI(urloriginandpatharray[0]);
+            }
+        }
+
+        // make LangugeFilterApplied to false only if all languge filters are removed
+        if (ajaxeventsurl.indexOf(GlobalLangugeFilterNameContsant + "=") > -1) {
+            LangugeFilterApplied = true;
+        } else {
+            LangugeFilterApplied = false;
+        }
+
+        window.history.pushState({}, null, ajaxeventsurl);
+        $("#ProgressBarContainer").removeClass("hide-dom-element");
+        $.ajax({
+            type: "GET",
+            url: ajaxeventsurl,
+            data: { returnPartialview: true, enableListCardView: islistcardview, latitudeValue: GeoLocationLatitudeValue, longitudeValue: GeoLocationLongitueValue, isLangugeFilterApplied: LangugeFilterApplied, isChineseBowserLocation: IsBrowserLocationInChina },
+            success: function (response) {
+                if (response) {
+                    favDataLoaded = false;
+                    $("#event-summary-panel").html(response.eventsPartialView);
+                    $("#events-filter-panel").html(response.filterLargeScreenPartialView);
+                    $("#events-responsive-filterpanel").html(response.filterSmallScreenPartialView);
+                    updateFavCount();
+                    $("#ProgressBarContainer").addClass("hide-dom-element");
+                    Refinedresultcountfocus();
+                }
+            }
+        });
+    }
+}
+
+function ResetPreferenceValueInfilterMenu() {
+    // reset languge preference values
+    $('input[name="language"]').prop('checked', false);
+    $('input[name="deliverylanguage"]').prop('checked', false);
+    $('input[name="subtitlelanguage"]').prop('checked', false);
+    // reset time preference values
+    $("#timerange-slider").slider({
+        range: true,
+        min: 0,
+        max: 1439,
+        values: [0, 1439]
+    });
+    convertSliderValuesToTime($("#timerange-slider").slider("values", 0), $("#timerange-slider").slider("values", 1));
+
+    // reset format prefrence values
+    $('input[name="format"]').prop('checked', false);
+
+    // reset location prefernce value
+    var emptyvalue = '';
+    $("#EventsLocations").val(emptyvalue);
+
+    // deselect distance radio buttons, remove dynamic filter applied button and hide the content
+    $('input[name="distancepreference"]').prop("checked", false);
+    $("#LocationDistanceContent").addClass("hide-dom-element");
+    if ($('button[name="' + GlobalDistanceRadioButtonNameConstant + '"]').length > 0) {
+        $('button[name="' + GlobalDistanceRadioButtonNameConstant + '"]').remove();
+    }
+
+    // reset switchtimezone prefrence values
+    $('#SwitchEventTimeZoneToUserLocale').prop('checked', false);
+
+    // remove all dynamically create buttons for prefrence values
+    $('button[id*="PreferenceApplied"]').remove();
+
+    // hide applied filters section when no filters are applied
+    if ($(".filterbtn-container").is(":empty")) {
+        $(".applied-filters").hide();
+    }
+
+    // hide clear event languge button
+    $('#ClearEventLanguage').hide();
+    // hide clear event delivery languge button
+    $('#ClearEventdeliveryLanguage').hide();
+    // hide clear event subtitle languge button
+    $('#ClearEventsubtitleLanguage').hide();
+    // hide clear all preferences button
+    $('#ClearAllPreferences').hide();
+}
+
+function AjaxCallForTimeFilterEventsData(starttimekey, startimevalue, endtinekey, endtimevalue) {
+    var eventsURL = decodeURI(window.location.href);
+    var switchtimezone = null;
+    var applylocaltimefilter = null
+    var filterquerystringwithvaluesasZero = GlobalSwitchTimeZoneFilterNameContsant + "=" + 0;
+    var filterquerystringwithvaluesasNo = GlobalSwitchTimeZoneFilterNameContsant + "=" + "No";
+    var islistcardview = false;
+    if ($("#EventListCardToggleButton").hasClass("listcard-togglebtn-active")) {
+        islistcardview = true;
+    }
+    var startimequerystring = starttimekey + "=" + startimevalue;
+    var endtimequerystring = endtinekey + "=" + endtimevalue;
+    var filterquerystring = startimequerystring + "&" + endtimequerystring;
+    if (eventsURL.indexOf("?") > -1) {
+        var urloriginandpatharray = eventsURL.split("?");
+        var urlpatharray = urloriginandpatharray[1].split("&");
+        // remove clientTimeZone querystrings with values as zero and "No"
+        for (var i = 0; i < urlpatharray.length; i++) {
+            if (urlpatharray[i].toLowerCase() == filterquerystringwithvaluesasZero.toLowerCase() || urlpatharray[i].toLowerCase() == filterquerystringwithvaluesasNo.toLowerCase()) {
+                urlpatharray.splice(i, 1);
+                i--;
+            }
+        }
+        // check if the url path already has starttime filter applied
+        if (urloriginandpatharray[1].indexOf(starttimekey + "=") > -1 || urloriginandpatharray[1].indexOf(endtinekey + "=") > -1) {
+            // split the url path, search for already applied starttime filter and endtime filter and remove it
+            $.each(urlpatharray, function (index, value) {
+                if (value.indexOf(starttimekey + "=") > -1) {
+                    urlpatharray.splice(index, 1);
+                    return false;
+                }
+            });
+            $.each(urlpatharray, function (index, value) {
+                if (value.indexOf(endtinekey + "=") > -1) {
+                    urlpatharray.splice(index, 1);
+                    return false;
+                }
+            });
+            if (startimevalue != "00:00" || endtimevalue != "23:59") {
+                urlpatharray.push(startimequerystring);
+                urlpatharray.push(endtimequerystring);
+            }
+
+            urloriginandpatharray[1] = urlpatharray.join("&");
+        } else {
+            if (startimevalue != "00:00" || endtimevalue != "23:59") {
+                if (urlpatharray != null && urlpatharray.length > 0) {
+                    urloriginandpatharray[1] = urlpatharray.join("&") + "&" + filterquerystring;
+                } else {
+                    urloriginandpatharray[1] = filterquerystring;
+                }
+            }
+        }
+
+        if (urloriginandpatharray[1].length > 0) {
+            var ajaxeventsurl = encodeURI(urloriginandpatharray.join("?"));
+        } else {
+            if (urloriginandpatharray.length > 2) {
+                var newfilteredurloriginandpatharray = RemoveNullorEmptyElementsFromArray(urloriginandpatharray);
+                var ajaxeventsurl = encodeURI(newfilteredurloriginandpatharray.join("?"));
+            } else {
+                var ajaxeventsurl = encodeURI(urloriginandpatharray[0]);
+            }
+        }
+
+        // enable localtimefilter if startime filter is applied
+        if (ajaxeventsurl.indexOf(GlobalStartTimeFilterNameContsant + "=") > -1 && ajaxeventsurl.indexOf(GlobalEndTimeFilterNameContsant + "=") > -1) {
+            applylocaltimefilter = 1;
+            switchtimezone = GetBrowserLocationTimeZone();
+        }
+
+        // make LangugeFilterApplied to false only if all languge filters are removed
+        if (ajaxeventsurl.indexOf(GlobalLangugeFilterNameContsant + "=") > -1) {
+            LangugeFilterApplied = true;
+        } else {
+            LangugeFilterApplied = false;
+        }
+
+        window.history.pushState({}, null, ajaxeventsurl);
+
+        if (startimevalue != "00:00" || endtimevalue != "23:59") {
+            $("#ProgressBarContainer").removeClass("hide-dom-element");
+            $.ajax({
+                type: "GET",
+                url: ajaxeventsurl,
+                data: { returnPartialview: true, enableListCardView: islistcardview, latitudeValue: GeoLocationLatitudeValue, longitudeValue: GeoLocationLongitueValue, isLangugeFilterApplied: LangugeFilterApplied, isChineseBowserLocation: IsBrowserLocationInChina, clientTimeZone: applylocaltimefilter, eventsLocalTimeZonevalue: switchtimezone },
+                success: function (response) {
+                    if (response) {
+                        favDataLoaded = false;
+                        $("#event-summary-panel").html(response.eventsPartialView);
+                        $("#events-filter-panel").html(response.filterLargeScreenPartialView);
+                        $("#events-responsive-filterpanel").html(response.filterSmallScreenPartialView);
+                        updateFavCount();
+                        $("#ProgressBarContainer").addClass("hide-dom-element");
+                        Refinedresultcountfocus();
+                    }
+                }
+            });
+        } else {
+            $("#ProgressBarContainer").removeClass("hide-dom-element");
+            $.ajax({
+                type: "GET",
+                url: ajaxeventsurl,
+                data: { returnPartialview: true, enableListCardView: islistcardview, latitudeValue: GeoLocationLatitudeValue, longitudeValue: GeoLocationLongitueValue, isLangugeFilterApplied: LangugeFilterApplied, isChineseBowserLocation: IsBrowserLocationInChina, clientTimeZone: applylocaltimefilter, eventsLocalTimeZonevalue: switchtimezone },
+                success: function (response) {
+                    if (response) {
+                        favDataLoaded = false;
+                        $("#event-summary-panel").html(response.eventsPartialView);
+                        $("#events-filter-panel").html(response.filterLargeScreenPartialView);
+                        $("#events-responsive-filterpanel").html(response.filterSmallScreenPartialView);
+                        updateFavCount();
+                        $("#ProgressBarContainer").addClass("hide-dom-element");
+                        Refinedresultcountfocus();
+                    }
+                }
+            });
+        }
+    } else {
+        if (startimevalue != "00:00" || endtimevalue != "23:59") {
+            var ajaxeventsurl = encodeURI(eventsURL + "?" + filterquerystring);
+
+            // enable localtimefilter if startime filter is applied
+            if (ajaxeventsurl.indexOf(GlobalStartTimeFilterNameContsant + "=") > -1 && ajaxeventsurl.indexOf(GlobalEndTimeFilterNameContsant + "=") > -1) {
+                applylocaltimefilter = 1;
+                switchtimezone = GetBrowserLocationTimeZone();
+            }
+
+            // make LangugeFilterApplied to false only if all languge filters are removed
+            if (ajaxeventsurl.indexOf(GlobalLangugeFilterNameContsant + "=") > -1) {
+                LangugeFilterApplied = true;
+            } else {
+                LangugeFilterApplied = false;
+            }
+
+            window.history.pushState({}, null, ajaxeventsurl);
+            $("#ProgressBarContainer").removeClass("hide-dom-element");
+            $.ajax({
+                type: "GET",
+                url: ajaxeventsurl,
+                data: { returnPartialview: true, enableListCardView: islistcardview, latitudeValue: GeoLocationLatitudeValue, longitudeValue: GeoLocationLongitueValue, isLangugeFilterApplied: LangugeFilterApplied, isChineseBowserLocation: IsBrowserLocationInChina, clientTimeZone: applylocaltimefilter, eventsLocalTimeZonevalue: switchtimezone },
+                success: function (response) {
+                    if (response) {
+                        favDataLoaded = false;
+                        $("#event-summary-panel").html(response.eventsPartialView);
+                        $("#events-filter-panel").html(response.filterLargeScreenPartialView);
+                        $("#events-responsive-filterpanel").html(response.filterSmallScreenPartialView);
+                        updateFavCount();
+                        $("#ProgressBarContainer").addClass("hide-dom-element");
+                        Refinedresultcountfocus();
+                    }
+                }
+            });
+        }
+    }
+}
+
+function RemoveDynamicTimeIntervalFilterApplied(appliedfilterbtnid) {
+    $("body").on("click", "#" + appliedfilterbtnid, function () {
+        $("#timerange-slider").slider({
+            range: true,
+            min: 0,
+            max: 1439,
+            values: [0, 1439]
+        });
+        $("#" + appliedfilterbtnid).remove();
+
+        // hide applied filters section when no filters are applied
+        if ($(".filterbtn-container").is(":empty")) {
+            $(".applied-filters").hide();
+        }
+
+        convertSliderValuesToTime($("#timerange-slider").slider("values", 0), $("#timerange-slider").slider("values", 1));
+        var starttime = $("#EventStartTime").val();
+        var endtime = $("#EventEndTime").val();
+
+        // build time querystring value to pass through url
+        var starttimequery = ConvertTo24HrsTime(starttime);
+        var endtimequery = ConvertTo24HrsTime(endtime);
+
+        // delete localstorage starttime and endtime values
+        localStorage.removeItem(EventStartTimeIntervalStartingValueLocalStorageKey);
+        localStorage.removeItem(EventStartTimeIntervalEndValueLocalStorageKey);
+
+        AjaxCallForTimeFilterEventsData(GlobalStartTimeFilterNameContsant, starttimequery, GlobalEndTimeFilterNameContsant, endtimequery);
+    });
+}
+
+RemoveAriaPressedAttribute();
+
+function RemoveAriaPressedAttribute() {
+    setTimeout(function () {
+        $("#EventLanguagePreferenceButton, #EventLanguagePreferenceArrow, #EventdeliveryLanguagePreferenceButton, #EventdeliveryLanguagePreferenceArrow,#EventsubtitleLanguagePreferenceButton, #EventsubtitleLanguagePreferenceArrow, #EventTimimgPreferenceService, #EventLocationPreferenceService, #ProductFilterButton").removeAttr("aria-expanded");
+    }, 1000);
+ 
+}
+
+$("#EventLanguagePreferenceButton, #EventLanguagePreferenceArrow, #EventdeliveryLanguagePreferenceButton, #EventdeliveryLanguagePreferenceArrow, #EventsubtitleLanguagePreferenceButton, #EventsubtitleLanguagePreferenceArrow, #EventTimimgPreferenceService, #EventLocationPreferenceService, #ProductFilterButton").click(function () {
+    setTimeout(function () {
+        $("#EventLanguagePreferenceButton, #EventLanguagePreferenceArrow, #EventdeliveryLanguagePreferenceButton, #EventdeliveryLanguagePreferenceArrow, #EventsubtitleLanguagePreferenceButton, #EventsubtitleLanguagePreferenceArrow, #EventTimimgPreferenceService, #EventLocationPreferenceService, #ProductFilterButton").removeAttr("aria-expanded");
+    }, 1000);
+})

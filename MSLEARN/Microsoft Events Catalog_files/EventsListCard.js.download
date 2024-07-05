@@ -1,0 +1,316 @@
+﻿var toggleGridFlag = true;
+var showmoredescriptionactive = false;
+var showmoredeliverylanactive = false;
+$(document).ready(function () {
+    $("#list").ready(function () {
+        $(".cardlist_size").ready(function () {
+            ListViewDiv_DataGrid();
+        });
+    });
+    loadShareBoxClass();
+});
+
+function eventdescriptionHeight() {
+    $(".box").each(function () {
+        if ($(this).find('p.listview-sec2-titledesc').height() == 19) {
+            $(this).find('.readmore-btn').css('margin-top', '33px');
+        }
+        else if ($(this).find('p.listview-sec2-titledesc').height() == 38) {
+            $(this).find('.readmore-btn').css('margin-top', '17px');
+        }
+        else if ($(this).find('p.listview-sec2-titledesc').height() == 57) {
+            $(this).find('.readmore-btn').css('margin-top', '0px');
+        }
+    });
+}
+
+function eventdescriptionHeight() {
+    $(".box").each(function () {
+        if ($(this).find('p.listview-sec3-titledeliverylan').height() == 19) {
+            $(this).find('.deliverylanreadmore-btn').css('margin-top', '33px');
+        }
+        else if ($(this).find('p.listview-sec3-titledeliverylan').height() == 38) {
+            $(this).find('.deliverylanreadmore-btn').css('margin-top', '17px');
+        }
+        else if ($(this).find('p.listview-sec3-titledeliverylan').height() == 57) {
+            $(this).find('.deliverylanreadmore-btn').css('margin-top', '0px');
+        }
+    });
+}
+
+function loadListFields() {
+    $("#EventGridCardToggleButton").removeClass("gridcard-togglebtn-active");
+    $("#InActiveGridIcon").removeClass("hide-dom-element");
+    $("#EventGridCardToggleButton").addClass("gridcard-togglebtn-inactive");
+    $("#ActiveGridIcon").addClass("hide-dom-element");
+    $("#EventListCardToggleButton").removeClass("listcard-togglebtn-inactive");
+    $("#ActiveListIcon").removeClass("hide-dom-element");
+    $("#EventListCardToggleButton").addClass("listcard-togglebtn-active");
+    $("#InActiveListIcon").addClass("hide-dom-element");
+    $("#EventsGridCardWrapper").addClass("hide-dom-element");
+    $("#EventsListCardWrapper").removeClass("hide-dom-element");
+    $("#EventGridCardToggleButton").attr("aria-pressed", false);
+    $("#EventListCardToggleButton").attr("aria-pressed", true);
+    eventdescriptionHeight();
+    eventdeliverylanHeight();
+};
+
+function loadGridFields() {
+    $("#EventListCardToggleButton").removeClass("listcard-togglebtn-active");
+    $("#InActiveListIcon").removeClass("hide-dom-element");
+    $("#EventListCardToggleButton").addClass("listcard-togglebtn-inactive");
+    $("#ActiveListIcon").addClass("hide-dom-element");
+    $("#EventGridCardToggleButton").removeClass("gridcard-togglebtn-inactive");
+    $("#ActiveGridIcon").removeClass("hide-dom-element");
+    $("#EventGridCardToggleButton").addClass("gridcard-togglebtn-active");
+    $("#InActiveGridIcon").addClass("hide-dom-element");
+    $("#EventsGridCardWrapper").removeClass("hide-dom-element");
+    $("#EventsListCardWrapper").addClass("hide-dom-element");
+    $("#EventGridCardToggleButton").attr("aria-pressed", true);
+    $("#EventListCardToggleButton").attr("aria-pressed", false);
+};
+
+function loadShareBoxClass() {
+    if (parseInt($(window).width()) >= 1024 && parseInt($(window).width()) <= 1399) {
+        $('.share-Box').removeClass('arrow-bottom');
+        $('.share-Box').addClass('arrow-bottom1100');
+    } else {
+        $('.share-Box').removeClass('arrow-bottom1100');
+        $('.share-Box').addClass('arrow-bottom');
+    }
+    $("#EventListIcon").css('visibility', 'visible');
+}
+
+function ListViewDiv_DataGrid() {
+    var width = $(window).width();
+    /* screen width b/w 1399 : 1701*/
+    if (width >= 1400 && width <= 1701) {
+        $(".sec1").attr("data-grid", "col-3");
+        $(".sec2").attr("data-grid", "col-6");
+        $(".sec3").attr("data-grid", "col-3");
+        $('.customstyle').css('display', 'block');
+        $('.Rectangle-List').css('display', 'none');
+    }
+    /*screen width b/w 1083 : 1398*/
+    else if (width >= 1083 && width < 1400) {
+        $(".sec1").attr("data-grid", "col-3");
+        $(".sec2").attr("data-grid", "col-6");
+        $(".sec3").attr("data-grid", "col-3");
+        $('.customstyle').css('display', 'none');
+        $('.Rectangle-List').css('display', 'block');
+    }
+    /*screen width b/w 1024 : 1082*/
+    else if (width >= 1024 && width <= 1082) {
+        $(".sec1").attr("data-grid", "col-3");
+        $(".sec2").attr("data-grid", "col-6");
+        $(".sec3").attr("data-grid", "col-3");
+        $('.customstyle').css('display', 'none');
+        $('.Rectangle-List').css('display', 'block');
+    }
+    else {
+        $(".sec1").attr("data-grid", "col-2");
+        $(".sec2").attr("data-grid", "col-8");
+        $(".sec3").attr("data-grid", "col-2");
+        $('.customstyle').css('display', 'block');
+        $('.Rectangle-List').css('display', 'none');
+    }
+    eventdescriptionHeight();
+    eventdeliverylanHeight();
+};
+
+//on click readmore-btn toggle showContent
+$(".readmore-btn").on('click', function () {
+    $(this).parent().toggleClass("showContent");
+    var replaceText; var height;
+    var btnTextValue = $(this).val();
+    var btnTextValueNew = $(this).text();
+    var item = 0;
+    if ($(this).parent().parent().next().find('p.listview-sec3-titledeliverylan').length > 0 || $(this).parent().parent().next().find('p.deliverylanelementp12').length > 0) {
+        var langtext = $(this).parent().parent().next().find('p.listview-sec3-titledeliverylan').text() != "" ? $(this).parent().parent().next().find('p.listview-sec3-titledeliverylan').text() : $(this).parent().parent().next().find('p.deliverylanelementp12').text();
+        item = langtext.split(',').length > 1 ? 5 : 4;
+    }
+    else
+        item = 3;
+    //Show more functionality when parent class has showContent .... goes here
+    if ($(this).parent().hasClass("showContent")) {
+        showmoredescription($(this), btnTextValue, btnTextValueNew, height, item);
+    }
+    //Show less functionality when parent class has no showContent .... goes here
+    else {
+        showlessdescription($(this), btnTextValue, btnTextValueNew, height, item);
+    }
+});
+
+
+function showmoredescription(current, btnTextValue, btnTextValueNew, height, item) {
+    showmoredescriptionactive = true;
+    current.parent().parent().parent().css("height", "auto");
+    current.parent().find('.elementp').removeClass();
+    current.prev().addClass('elementp12');
+    var eventFormatHT = parseFloat(current.parent().parent().next().find('p.listView-eventformat').css('height'));
+    var evheight = parseFloat(current.parent().parent().next().find('p.listView-eventtype').css('height'));
+    var eventAudienceHT = parseFloat(current.parent().parent().next().find('p.paudience').css('height'));
+
+    if (current.parent().parent().next().find('.sec3removel').length > 0) {
+        current.parent().parent().next().find('.sec3removel').addClass('sec3addll');
+        current.parent().parent().next().find('.sec3removel').removeClass('sec3removel');
+    }
+    if (current.parent().find('p.elementp12')[0].innerHTML.trim() != "" && current.parent().find('p.elementp12').height() > 21) {
+        height = parseFloat(current.parent().find('p.elementp12').css('height')) - (evheight + eventFormatHT);
+        current.parent().parent().next().find('.sec3addll').css('height', height + 'px');
+        current.css('margin-top', '33px');
+    } else {
+        height = 3 * (evheight);
+        //current.css('height', height + 'px');
+        current.parent().parent().next().find('.sec3addll').css('height', height + 'px');
+        if (current.parent().parent().next().find('.sec3addll').find('p.paudience').text() != "" && current.parent().parent().next().find('.sec3addll').find('p.paudience').text().split('\n')[2].split(',') == 1) {
+            current.css('margin-top', '100px');
+        }
+        else {
+            current.css('margin-top', '120px');
+        }
+    }
+    current.text(btnTextValue);
+    current.val(btnTextValueNew);
+    current[0].value = btnTextValueNew;
+}
+
+function showlessdescription(current, btnTextValue, btnTextValueNew, height, item) {
+    showmoredescriptionactive = false;
+    current.parent().find('.elementp12').removeClass();
+    current.prev().addClass('listview-sec2-titledesc elementp');
+    if (current.parent().parent().next().find('.sec3addll').length > 0) {
+        current.parent().parent().next().find('.sec3addll').addClass('sec3removel');
+        current.parent().parent().next().find('.sec3addll').removeClass('sec3addll');
+    }
+
+    height = current.parent().find('p.elementp').css('height');
+    current.parent().parent().next().find('.sec3removel').css('height', height);
+    if (current.parent().find('p.elementp')[0] && current.parent().find('p.elementp')[0].innerHTML != "" && current.parent().find('p.elementp').height() > 21) {
+        current.css('margin-top', '10px');
+    } else if (current.parent().find('p.elementp').height() == 21) {
+        current.css('margin-top', '50px');
+    }
+    else {
+        current.css('margin-top', '70px');
+    }
+    current.parent().parent().parent().css("height", "178px");
+    current.text(btnTextValue);
+    current.val(btnTextValueNew);
+    current[0].value = btnTextValueNew;
+    if (showmoredeliverylanactive == true) {
+        $(".deliverylanreadmore-btn").parent().removeClass("showContent");
+        showlessdeliverylan($(".deliverylanreadmore-btn"), "Show more", "Show less", '');
+    }
+}
+
+
+//on click readmore-btn toggle showContent
+$(".deliverylanreadmore-btn").on('click', function () {
+    $(this).parent().toggleClass("showContent");
+    var replaceText; var height;
+    var btnTextValue = $(this).val();
+    var btnTextValueNew = $(this).text();
+    var item = 0;
+    var value = $(this).length;
+    var value1 = $(this).parent().parent().next().find('p.listView-eventformat');
+    if ($(this).parent().find('p.listview-sec3-titledeliverylan').length > 0 || $(this).parent().find('p.deliverylanelementp12').length > 0) {
+        var langtext = $(this).parent().find('p.listview-sec3-titledeliverylan').text() != "" ? $(this).parent().find('p.listview-sec3-titledeliverylan').text() : $(this).parent().find('p.deliverylanelementp12').text();
+        item = langtext.split(',').length > 1 ? 5 : 4;
+    }
+    else
+        item = 3;
+    //Show more functionality when parent class has showContent .... goes here
+    if ($(this).parent().hasClass("showContent")) {
+        showmoredeliverylan($(this), btnTextValue, btnTextValueNew, height);
+    }
+    //Show less functionality when parent class has no showContent .... goes here
+    else {
+        showlessdeliverylan($(this), btnTextValue, btnTextValueNew, height);
+    }
+});
+
+function showmoredeliverylan(current, btnTextValue, btnTextValueNew, height) {
+    showmoredeliverylanactive = true;
+    current.parent().parent().css("height", "auto");
+    current.parent().find('.deliverylanelementp').removeClass();
+    current.prev().addClass('deliverylanelementp12');
+    var eventFormatHT = parseFloat(current.parent().find('p.listView-eventformat').css('height'));
+    var evheight = parseFloat(current.parent().find('p.listView-eventtype').css('height'));
+    var eventAudienceHT = parseFloat(current.parent().find('p.paudience').css('height'));
+    if (current.parent().find('.sec3removel').length > 0) {
+        current.next().next().className = "sec3addll";
+    }
+    if (current.parent().find('p.deliverylanelementp12')[0].innerHTML.trim() != "" && current.parent().find('p.deliverylanelementp12').height() > 21 && !eventAudienceHT > 0) {
+        height = parseFloat(current.parent().find('p.deliverylanelementp12').css('height')) - (evheight + eventFormatHT);
+        current.parent().find('.sec3addll').css('height', height + 'px');
+        current.css('margin-top', '33px');
+    } else {
+        height = 3 * (evheight);
+        //current.css('height', height + 'px');
+        current.parent().find('.sec3addll').css('height', height + 'px');
+        if (current.parent().find('.sec3addll').find('p.paudience').text() != "" && current.parent().find('.sec3addll').find('p.paudience').text().split('\n')[2].split(',') == 1) {
+            current.css('margin-top', '100px');
+        }
+        else {
+            current.css('margin-top', '10px');
+        }
+    }
+    current.text(btnTextValue);
+    current.val(btnTextValueNew);
+    current[0].value = btnTextValueNew;
+}
+
+function showlessdeliverylan(current, btnTextValue, btnTextValueNew, height) {
+    showmoredeliverylanactive = false;
+    var val = current.parent().find('p.listview-sec3-titledeliverylan').text();
+    var val2 = current.parent().find('p.deliverylanelementp12').text();
+    var item = 0;
+    if (current.parent().find('p.listview-sec3-titledeliverylan').length > 0 || current.parent().find('p.deliverylanelementp12').length > 0) {
+        var langtext = current.parent().find('p.listview-sec3-titledeliverylan').text() != "" ? current.parent().find('p.listview-sec3-titledeliverylan').text() : current.parent().find('p.deliverylanelementp12').text();
+        item = langtext.split(',').length > 1 ? 5 : 4;
+    }
+    else
+        item = 3;
+    current.parent().find('.deliverylanelementp12').removeClass();
+    current.prev().addClass('listView-eventdeliverylang listview-sec3-titledeliverylan deliverylanelementp');
+
+    if (current.parent().find('.sec3removel').length > 0) {
+        current.next().next().className = "sec3removel";
+    }
+    height = current.parent().find('p.deliverylanelementp').css('height');
+    //current.parent().parent().next().find('.sec3removel').css('height', height);
+    if (current.parent().find('p.deliverylanelementp')[0] && current.parent().find('p.deliverylanelementp')[0].innerHTML != "" && current.parent().find('p.deliverylanelementp').height() > 21) {
+        current.css('margin-top', '0px');
+    } else if (current.parent().find('p.deliverylanelementp').height() == 21) {
+        current.css('margin-top', '50px');
+    }
+    else {
+        current.css('margin-top', '0px');
+    }
+    current.parent().parent().css("height", "178px");
+    current.text(btnTextValue);
+    current.val(btnTextValueNew);
+    current[0].value = btnTextValueNew;
+    if (showmoredescriptionactive == true) {
+        $(".readmore-btn").parent().removeClass("showContent");
+        showlessdescription($(".readmore-btn"), "Show more", "Show less", '', item);
+
+    }
+}
+
+
+$('.copylink').on("click", function () {
+    value = $(this).data('clipboard-text');
+    var $temp = $("<input>");
+    $("body").append($temp);
+    $temp.val(value).select();
+    document.execCommand("copy");
+    $temp.remove();
+});
+
+function copyLink(e) {
+    var copyText = document.querySelector(e.dataset.clipboardTarget);
+    copyText.select();
+    document.execCommand("copy")
+};

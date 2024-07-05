@@ -1,0 +1,1 @@
+jQuery(window).load(function(){var n=document.getElementsByClassName("manageCookies")[0];WcpConsent&&WcpConsent.siteConsent&&WcpConsent.siteConsent.isConsentRequired?n.onclick=function(){return WcpConsent&&WcpConsent.siteConsent&&WcpConsent.siteConsent.manageConsent(),!1}:n!=null&&(n.parentElement.style.display="none")})
